@@ -1,0 +1,18 @@
+{
+    "name": "fefek5.Variables.SaveDataVarialble.Samples.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f38738217cb99e04db27c0754b718c12"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,20 @@
+{
+    "name": "fefek5.Variables.SaveDataVariable.Runtime",
+    "rootNamespace": "",
+    "references": [
+        "GUID:dcb6703bbf1c9124f9784957aa222c18",
+        "GUID:7e20ec94f647e5949b4d860cfde39a1f",
+        "GUID:104ef622770840d3bd2375be6d5a23cb",
+        "GUID:ef339ff94667f6a45a8ad82b7e3f8734",
+        "GUID:46a5f0ba72b7c4b4898c159e84d0892b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

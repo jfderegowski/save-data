@@ -1,0 +1,17 @@
+{
+    "name": "fefek5.Variables.SaveDataVariable.Samples",
+    "rootNamespace": "",
+    "references": [
+        "GUID:83ca793d0bed6f84cb9c75666fa37ae5",
+        "GUID:46a5f0ba72b7c4b4898c159e84d0892b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

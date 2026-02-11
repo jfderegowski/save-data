@@ -1,10 +1,10 @@
 ﻿using System;
-using fefek5.Variables.SaveDataVariable.Runtime.Extensions;
-using fefek5.Variables.SaveDataVariable.Runtime.Serializable;
+using fefek5.SaveDataVariable.Runtime.Extensions;
+using fefek5.SaveDataVariable.Runtime.Serializable;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Converters
+namespace fefek5.SaveDataVariable.Runtime.Converters
 {
     public class TransformConverter : JsonConverter<Transform>
     {

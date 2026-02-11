@@ -1,6 +1,6 @@
-﻿using fefek5.Systems.ResourcesScriptableObjectSystem.Runtime;
+﻿using Runtime;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Settings
+namespace fefek5.SaveDataVariable.Runtime.Settings
 {
     public class DefaultSaveSettings : ResourcesScriptableObject<DefaultSaveSettings>
     {

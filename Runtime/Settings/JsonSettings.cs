@@ -1,11 +1,11 @@
 ﻿using System;
 using fefek5.Common.Runtime.Extensions;
-using fefek5.Variables.HasValueVariable.Runtime;
-using fefek5.Variables.SaveDataVariable.Runtime.Converters;
+using fefek5.SaveDataVariable.Runtime.Converters;
+using fefek5.HasValueVariable.Runtime;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Settings
+namespace fefek5.SaveDataVariable.Runtime.Settings
 {
     [Serializable]
     public class JsonSettings

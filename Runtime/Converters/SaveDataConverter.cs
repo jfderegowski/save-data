@@ -1,10 +1,10 @@
 ﻿using System;
 using fefek5.Common.Runtime.Extensions;
-using fefek5.Variables.HasValueVariable.Runtime;
-using fefek5.Variables.SaveDataVariable.Runtime.Settings;
+using fefek5.SaveDataVariable.Runtime.Settings;
+using fefek5.HasValueVariable.Runtime;
 using Newtonsoft.Json;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Converters
+namespace fefek5.SaveDataVariable.Runtime.Converters
 {
     /// <summary>
     /// Converter for SaveData.

@@ -1,0 +1,15 @@
+{
+  "name": "com.fefek5.save-data",
+  "version": "1.0.0",
+  "displayName": "Save Data",
+  "description": "Variable that can help with saving data to file.",
+  "unity": "6000.0",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.fefek5.has-value" : "https://github.com/jfderegowski/has-value.git"
+ },
+  "author": {
+    "name": "fefek5",
+    "url": "https://github.com/jfderegowski"
+  }
+}

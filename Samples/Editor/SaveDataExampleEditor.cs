@@ -1,9 +1,10 @@
-﻿using UnityEditor;
+﻿using fefek5.SaveDataVariable.Samples;
+using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace fefek5.Variables.SaveDataVariable.Samples.Editor
+namespace fefek5.SaveDataVariable.Samples.Editor
 {
     [CustomEditor(typeof(SaveDataExample))]
     public class SaveDataExampleEditor : UnityEditor.Editor

@@ -1,10 +1,10 @@
 ﻿using System;
 using fefek5.Common.Runtime.Extensions;
-using fefek5.Variables.HasValueVariable.Runtime;
-using fefek5.Variables.SerializableGuidVariable.Runtime;
+using fefek5.SerializableGuidVariable.Runtime;
+using fefek5.HasValueVariable.Runtime;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime
+namespace fefek5.SaveDataVariable.Runtime
 {
     /// <summary>
     /// This struct is used to create a key for the save data.

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Extensions
+namespace fefek5.SaveDataVariable.Runtime.Extensions
 {
     internal static class DictionaryExtensions
     {
@@ -34,7 +34,25 @@ namespace fefek5.Variables.SaveDataVariable.Runtime.Extensions
 
                 if (targetType.IsEnum && rawValue is IConvertible)
                     return (T)Enum.ToObject(targetType, rawValue);
-
+                
+                // Handle BigInteger conversion for numeric types
+                // IConvertable does work for BigInteger. For example from 1(BigInteger) to 1(uint)
+                if (rawValue is System.Numerics.BigInteger bigInt)
+                    return Type.GetTypeCode(targetType) switch {
+                        TypeCode.SByte => (T)(object)(sbyte)bigInt,
+                        TypeCode.Byte => (T)(object)(byte)bigInt,
+                        TypeCode.Int16 => (T)(object)(short)bigInt,
+                        TypeCode.UInt16 => (T)(object)(ushort)bigInt,
+                        TypeCode.Int32 => (T)(object)(int)bigInt,
+                        TypeCode.UInt32 => (T)(object)(uint)bigInt,
+                        TypeCode.Int64 => (T)(object)(long)bigInt,
+                        TypeCode.UInt64 => (T)(object)(ulong)bigInt,
+                        TypeCode.Single => (T)(object)(float)bigInt,
+                        TypeCode.Double => (T)(object)(double)bigInt,
+                        TypeCode.Decimal => (T)(object)(decimal)bigInt,
+                        _ => throw new InvalidCastException($"Cannot convert BigInteger to {targetType.Name}")
+                    };
+                
                 if (rawValue is IConvertible)
                     return (T)Convert.ChangeType(rawValue, targetType);
             }

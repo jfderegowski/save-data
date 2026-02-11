@@ -1,8 +1,8 @@
-﻿using fefek5.Variables.SaveDataVariable.Runtime;
-using fefek5.Variables.SaveDataVariable.Runtime.Settings;
+﻿using fefek5.SaveDataVariable.Runtime;
+using fefek5.SaveDataVariable.Runtime.Settings;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Samples
+namespace fefek5.SaveDataVariable.Samples
 {
     public class SavePosition : MonoBehaviour
     {

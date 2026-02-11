@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Settings
+namespace fefek5.SaveDataVariable.Runtime.Settings
 {
     [Serializable]
     public class EncryptionSettings

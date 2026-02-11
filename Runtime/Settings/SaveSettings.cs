@@ -1,8 +1,8 @@
 ﻿using System;
-using fefek5.Variables.HasValueVariable.Runtime;
+using fefek5.HasValueVariable.Runtime;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Settings
+namespace fefek5.SaveDataVariable.Runtime.Settings
 {
     [Serializable]
     public class SaveSettings

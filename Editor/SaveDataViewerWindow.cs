@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace fefek5.Variables.SaveDataVariable.Editor
+namespace fefek5.SaveDataVariable.Editor
 {
     public class SaveDataViewerWindow : EditorWindow
     {

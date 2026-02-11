@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Extensions
+namespace fefek5.SaveDataVariable.Runtime.Extensions
 {
     public static class JsonWriterExtensions
     {

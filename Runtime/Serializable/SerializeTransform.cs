@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Serializable
+namespace fefek5.SaveDataVariable.Runtime.Serializable
 {
     [Serializable]
     public struct SerializeTransform

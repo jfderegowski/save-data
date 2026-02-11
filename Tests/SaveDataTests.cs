@@ -1,14 +1,14 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using fefek5.Variables.SaveDataVariable.Runtime;
-using fefek5.Variables.SaveDataVariable.Runtime.Settings;
-using fefek5.Variables.SerializableGuidVariable.Runtime;
+using fefek5.SaveDataVariable.Runtime;
+using fefek5.SaveDataVariable.Runtime.Settings;
+using fefek5.SerializableGuidVariable.Runtime;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Tests
+namespace fefek5.SaveDataVariable.Tests
 {
     public class SaveDataTests
     {
@@ -248,6 +248,36 @@ namespace fefek5.Variables.SaveDataVariable.Tests
             Assert.AreEqual(2, files.Length);
 
             Directory.Delete(folder, true);
+        }
+        
+        [Test]
+        public void ConvertBigIntegerToNumericTypesWorksCorrectly()
+        {
+            var bigInt = new System.Numerics.BigInteger(1);
+
+            _saveData.SetKey("sbyteKey", bigInt);
+            _saveData.SetKey("byteKey", bigInt);
+            _saveData.SetKey("int16Key", bigInt);
+            _saveData.SetKey("uint16Key", bigInt);
+            _saveData.SetKey("int32Key", bigInt);
+            _saveData.SetKey("uint32Key", bigInt);
+            _saveData.SetKey("int64Key", bigInt);
+            _saveData.SetKey("uint64Key", bigInt);
+            _saveData.SetKey("floatKey", bigInt);
+            _saveData.SetKey("doubleKey", bigInt);
+            _saveData.SetKey("decimalKey", bigInt);
+            
+            Assert.AreEqual((sbyte)1, _saveData.GetKey("sbyteKey", (sbyte)0));
+            Assert.AreEqual((byte)1, _saveData.GetKey("byteKey", (byte)0));
+            Assert.AreEqual((short)1, _saveData.GetKey("int16Key", (short)0));
+            Assert.AreEqual((ushort)1, _saveData.GetKey("uint16Key", (ushort)0));
+            Assert.AreEqual(1, _saveData.GetKey("int32Key", 0));
+            Assert.AreEqual((uint)1, _saveData.GetKey("uint32Key", (uint)0));
+            Assert.AreEqual((long)1, _saveData.GetKey("int64Key", (long)0));
+            Assert.AreEqual((ulong)1, _saveData.GetKey("uint64Key", (ulong)0));
+            Assert.AreEqual(1f, _saveData.GetKey("floatKey", 0f));
+            Assert.AreEqual(1d, _saveData.GetKey("doubleKey", 0d));
+            Assert.AreEqual(1m, _saveData.GetKey("decimalKey", 0m));
         }
     }
 }

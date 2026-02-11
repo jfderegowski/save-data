@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using fefek5.Variables.SaveDataVariable.Runtime;
-using fefek5.Variables.SaveDataVariable.Runtime.Serializable;
+using fefek5.SaveDataVariable.Runtime;
+using fefek5.SaveDataVariable.Runtime.Serializable;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Samples
+namespace fefek5.SaveDataVariable.Samples
 {
     [ExecuteAlways]
     public class SaveDataExample : MonoBehaviour
@@ -73,6 +73,7 @@ namespace fefek5.Variables.SaveDataVariable.Samples
         [SerializeField] private Vector4 _exampleVector4 = Vector4.one;
         [SerializeField] private List<string> _exampleList = new() { "Daniela", "have", "a dog" };
         [SerializeField] private Transform _exampleTransform;
+        [SerializeField] private SaveKey _exampleSaveKey = new(Guid.NewGuid(), "ExampleSaveKey");
 
         private void Reset()
         {

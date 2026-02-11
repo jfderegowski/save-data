@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using fefek5.Variables.SaveDataVariable.Runtime.Extensions;
+using fefek5.SaveDataVariable.Runtime.Extensions;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime.Converters
+namespace fefek5.SaveDataVariable.Runtime.Converters
 {
     public class Matrix4x4Converter : JsonConverter<Matrix4x4>
     {

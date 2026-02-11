@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using fefek5.Common.Runtime.Extensions;
+using fefek5.SaveDataVariable.Runtime.Extensions;
+using fefek5.SaveDataVariable.Runtime.Settings;
+using fefek5.SerializableGuidVariable.Runtime;
 using fefek5.Systems.EncryptionSystem;
-using fefek5.Variables.SaveDataVariable.Runtime.Extensions;
-using fefek5.Variables.SaveDataVariable.Runtime.Settings;
-using fefek5.Variables.SerializableGuidVariable.Runtime;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace fefek5.Variables.SaveDataVariable.Runtime
+namespace fefek5.SaveDataVariable.Runtime
 {
     /// <summary>
     /// SaveData class that can be used to save and load data

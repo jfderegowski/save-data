@@ -1,10 +1,9 @@
-﻿using fefek5.Variables.SaveDataVariable.Runtime;
+﻿using fefek5.SaveDataVariable.Runtime;
 using UnityEditor;
 using UnityEditor.UIElements;
-using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace fefek5.Variables.SaveDataVariable.Editor
+namespace fefek5.SaveDataVariable.Editor
 {
     [CustomPropertyDrawer(typeof(SaveData))]
     public class SaveDataDrawer : PropertyDrawer

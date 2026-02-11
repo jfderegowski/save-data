@@ -2,7 +2,7 @@
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
-namespace fefek5.Variables.SaveDataVariable.Samples.Editor
+namespace fefek5.SaveDataVariable.Samples.Editor
 {
     [CustomEditor(typeof(SavePosition))]
     public class SavePositionEditor : UnityEditor.Editor

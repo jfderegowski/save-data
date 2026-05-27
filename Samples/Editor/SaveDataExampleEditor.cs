@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace fefek5.SaveDataVariable.Samples.Editor
 {
-    [CustomEditor(typeof(SaveDataExample))]
+    [CustomEditor(typeof(SaveDataExample), true)]
     public class SaveDataExampleEditor : UnityEditor.Editor
     {
         public override VisualElement CreateInspectorGUI()

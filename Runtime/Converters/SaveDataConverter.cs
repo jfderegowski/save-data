@@ -1,7 +1,7 @@
 ﻿using System;
-using fefek5.Common.Runtime.Extensions;
 using fefek5.SaveDataVariable.Runtime.Settings;
 using fefek5.HasValueVariable.Runtime;
+using fefek5.Toys.Runtime.Extensions;
 using Newtonsoft.Json;
 
 namespace fefek5.SaveDataVariable.Runtime.Converters

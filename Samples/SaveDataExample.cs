@@ -104,13 +104,13 @@ namespace fefek5.SaveDataVariable.Samples
                 .SetKey("ExampleList", _exampleList)
                 .SetKey("ExampleTransform", _exampleTransform);
             
-            _saveData.Save(SaveFilePath);
+            _saveData.SaveAsync(SaveFilePath);
         }
 
         [ContextMenu("Load")]
         public void Load()
         {
-            _saveData.Load(SaveFilePath, SetValues);
+            _saveData.LoadAsync(SaveFilePath, SetValues);
         }
 
         private void SetValues()

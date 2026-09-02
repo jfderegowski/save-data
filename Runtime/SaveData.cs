@@ -476,7 +476,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -549,7 +549,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -622,7 +622,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -695,7 +695,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -862,7 +862,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -870,7 +870,7 @@ namespace fefek5.SaveDataVariable.Runtime
             {
                 tmpSaveData.SetKey(saveKey, value);
                 
-                tmpSaveData.Save(filePath, saveSettings, onSetKey);
+                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
             }
         }
         
@@ -933,7 +933,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -941,7 +941,7 @@ namespace fefek5.SaveDataVariable.Runtime
             {
                 tmpSaveData.SetKey(saveKey, value);
                 
-                tmpSaveData.Save(filePath, saveSettings, onSetKey);
+                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
             }
         }
         
@@ -1004,7 +1004,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -1012,7 +1012,7 @@ namespace fefek5.SaveDataVariable.Runtime
             {
                 tmpSaveData.SetKey(saveKey, value);
                 
-                tmpSaveData.Save(filePath, saveSettings, onSetKey);
+                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
             }
         }
         
@@ -1075,7 +1075,7 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var tmpSaveData = new SaveData();
             
-            tmpSaveData.Load(filePath, saveSettings, OnLoad);
+            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
             
             return;
 
@@ -1083,7 +1083,7 @@ namespace fefek5.SaveDataVariable.Runtime
             {
                 tmpSaveData.SetKey(saveKey, value);
                 
-                tmpSaveData.Save(filePath, saveSettings, onSetKey);
+                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
             }
         }
 
@@ -1208,20 +1208,71 @@ namespace fefek5.SaveDataVariable.Runtime
         /// </summary>
         /// <param name="path">Path to file</param>
         public void Save(string path) => Save(path, SaveSettings.Default);
+
+        /// <summary>
+        /// Save data to file
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <param name="saveSettings">Settings for saving</param>
+        public void Save(string path, SaveSettings saveSettings)
+        {
+            try
+            {
+                saveSettings ??= SaveSettings.Default;
+
+                var jsonString = ToJson(saveSettings);
+
+                if (saveSettings.UseEncryption)
+                {
+                    var password = saveSettings.Encryption.Password;
+                    var salt = saveSettings.Encryption.Salt;
+                    var initVector = saveSettings.Encryption.InitVector;
+
+                    jsonString = jsonString.Encrypt(password, salt, initVector);
+                }
+
+                // Create directory if it doesn't exist
+                var directoryPath = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                    Directory.CreateDirectory(directoryPath);
+
+
+                File.WriteAllText(path, jsonString);
+
+                // Delete excess files
+                if (saveSettings.UsedFileLimit)
+                    DeleteExcessFiles(directoryPath, "*sav", saveSettings.FileLimit);
+
+                Debug.Log($"[SAVE-DATA] Saved to file: {path} "
+                          + $"{directoryPath.ToFileLink("[Folder]")} "
+                          + $"{path.ToFileLink("[File]")}");
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"[SAVE-DATA] Error on save completion read the exception bellow");
+                Debug.LogError(e);
+            }
+        }
+        
+        /// <summary>
+        /// Save data to file
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        public void SaveAsync(string path) => SaveAsync(path, SaveSettings.Default);
         
         /// <summary>
         /// Save data to file
         /// </summary>
         /// <param name="path">Path to file</param>
         /// <param name="saveSettings">Settings for saving</param>
-        public void Save(string path, SaveSettings saveSettings) => Save(path, saveSettings, null);
+        public void SaveAsync(string path, SaveSettings saveSettings) => SaveAsync(path, saveSettings, null);
         
         /// <summary>
         /// Save data to file
         /// </summary>
         /// <param name="path">Path to file</param>
         /// <param name="onSave">Action that will be invoked after save completion</param>
-        public void Save(string path, Action onSave) => Save(path, SaveSettings.Default, onSave);
+        public void SaveAsync(string path, Action onSave) => SaveAsync(path, SaveSettings.Default, onSave);
 
         /// <summary>
         /// Save data to file
@@ -1229,7 +1280,7 @@ namespace fefek5.SaveDataVariable.Runtime
         /// <param name="path">Path to file</param>
         /// <param name="saveSettings">Settings for saving</param>
         /// <param name="onSave">Action that will be invoked after save completion</param>
-        public async void Save(string path, SaveSettings saveSettings, Action onSave)
+        public async void SaveAsync(string path, SaveSettings saveSettings, Action onSave)
         {
             try
             {
@@ -1282,7 +1333,7 @@ namespace fefek5.SaveDataVariable.Runtime
         #endregion
 
         #region Load
-
+        
         /// <summary>
         /// Load data from file
         /// </summary>
@@ -1294,14 +1345,63 @@ namespace fefek5.SaveDataVariable.Runtime
         /// </summary>
         /// <param name="path">Path to file</param>
         /// <param name="saveSettings">Settings for loading</param>
-        public void Load(string path, SaveSettings saveSettings) => Load(path, saveSettings, null);
+        public void Load(string path, SaveSettings saveSettings)
+        {
+            try
+            {
+                saveSettings ??= SaveSettings.Default;
+
+                var jsonSerializerSettings = saveSettings.UseJsonCustomSettings
+                    ? saveSettings.JsonCustomSettings.JsonSerializerSettings
+                    : new JsonSerializerSettings();
+
+                var jsonText = File.ReadAllText(path);
+
+                if (saveSettings.UseEncryption)
+                {
+                    var password = saveSettings.Encryption.Password;
+                    var salt = saveSettings.Encryption.Salt;
+                    var initVector = saveSettings.Encryption.InitVector;
+
+                    jsonText = jsonText.Decrypt(password, salt, initVector);
+                }
+
+                var saveData = !jsonText.IsBlank()
+                    ? FromJson(jsonText, jsonSerializerSettings)
+                    : new SaveData();
+
+                Data = saveData.Data;
+
+                Debug.Log($"[SAVE-DATA] Loaded from File: {path} "
+                          + $"{Path.GetDirectoryName(path).ToFileLink("[Folder]")} "
+                          + $"{path.ToFileLink("[File]")}");
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"[SAVE-DATA] Error on load completion read the exception bellow");
+                Debug.LogError(e);
+            }
+        }
+        
+        /// <summary>
+        /// Load data from file
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        public void LoadAsync(string path) => LoadAsync(path, SaveSettings.Default);
+
+        /// <summary>
+        /// Load data from file
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <param name="saveSettings">Settings for loading</param>
+        public void LoadAsync(string path, SaveSettings saveSettings) => LoadAsync(path, saveSettings, null);
         
         /// <summary>
         /// Load data from file
         /// </summary>
         /// <param name="path">Path to file</param>
         /// <param name="onLoad">Action that will be invoked after load completion</param>
-        public void Load(string path, Action onLoad) => Load(path, SaveSettings.Default, onLoad);
+        public void LoadAsync(string path, Action onLoad) => LoadAsync(path, SaveSettings.Default, onLoad);
 
         /// <summary>
         /// Load data from file
@@ -1309,7 +1409,7 @@ namespace fefek5.SaveDataVariable.Runtime
         /// <param name="path">Path to file</param>
         /// <param name="saveSettings">Settings for loading</param>
         /// <param name="onLoad">Action that will be invoked after load completion</param>
-        public async void Load(string path, SaveSettings saveSettings, Action onLoad)
+        public async void LoadAsync(string path, SaveSettings saveSettings, Action onLoad)
         {
             try
             {

@@ -10,10 +10,8 @@ namespace fefek5.SaveDataVariable.Runtime
         private static readonly Dictionary<string, SaveData> _saveDatas = new();
         private static readonly Dictionary<string, bool> _syncStatuses = new();
 
-        public static string GetFullPath(string relativePath)
-        {
-            return Application.persistentDataPath + "/" + relativePath;
-        }
+        public static string GetFullPath(string relativePath) =>
+            Path.Combine(Application.persistentDataPath, relativePath);
 
         public static SaveData GetSaveData(string relativePath)
         {
@@ -109,10 +107,9 @@ namespace fefek5.SaveDataVariable.Runtime
     }
     
     [Serializable]
-    public struct SaveVar<T> : IEquatable<SaveVar<T>>
+    public class SaveVar<T> : IEquatable<SaveVar<T>>
     {
-        [field: SerializeField] public SaveKey SaveKey { get; private set; }
-        [field: SerializeField] public T DefaultValue { get; private set; }
+        #region Properties
 
         public T Value
         {
@@ -120,22 +117,22 @@ namespace fefek5.SaveDataVariable.Runtime
             set => SaveVarStorage.SetValue(RelativePath, SaveKey, value);
         }
 
-        public readonly string RelativePath;
+        #endregion
+
+        #region Inspector Fields
+
+        [field: SerializeField] public SaveKey SaveKey { get; private set; }
+
+        [field: SerializeField] public T DefaultValue { get; private set; }
+
+        [field: SerializeField] public string RelativePath { get; private set; }
+
+        #endregion
+
+        #region Getters and Setters
 
         public void SetValueWithoutSaveing(T value) => 
             SaveVarStorage.SetValue(RelativePath, SaveKey, value, false);
-
-        #region Constructors
-
-        public SaveVar(SaveKey saveKey, string relativePath = "SaveVars.json")
-            : this(saveKey, default, relativePath) { }
-
-        public SaveVar(SaveKey saveKey, T defaultValue, string relativePath = "SaveVars.json")
-        {
-            DefaultValue = defaultValue;
-            SaveKey = saveKey;
-            RelativePath = relativePath;
-        }
 
         #endregion
 
@@ -162,7 +159,7 @@ namespace fefek5.SaveDataVariable.Runtime
             Value.Equals(other.Value);
 
         public static bool operator ==(SaveVar<T> saveVar1, SaveVar<T> saveVar2) => 
-            saveVar1.Equals(saveVar2);
+            saveVar1 != null && saveVar1.Equals(saveVar2);
 
         public static bool operator !=(SaveVar<T> saveVar1, SaveVar<T> saveVar2) => !(saveVar1 == saveVar2);
 

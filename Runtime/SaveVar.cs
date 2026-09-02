@@ -1,77 +1,129 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace fefek5.SaveDataVariable.Runtime
 {
+    public static class SaveVarStorage
+    {
+        private static readonly Dictionary<string, SaveData> _saveDatas = new();
+        private static readonly Dictionary<string, bool> _syncStatuses = new();
+
+        public static string GetFullPath(string relativePath)
+        {
+            return Application.persistentDataPath + "/" + relativePath;
+        }
+
+        public static SaveData GetSaveData(string relativePath)
+        {
+            if (_saveDatas.TryGetValue(relativePath, out var saveData))
+                return saveData;
+            
+            var loadedSaveData = new SaveData();
+            var isSync = false;
+            
+            if (File.Exists(GetFullPath(relativePath)))
+            {
+                loadedSaveData.Load(GetFullPath(relativePath));
+                isSync = true;
+            }
+                
+            AddSaveData(relativePath, loadedSaveData, isSync);
+                
+            return loadedSaveData;
+        }
+
+        private static void AddSaveData(string relativePath, SaveData saveData, bool isSync = false)
+        {
+            if (!_saveDatas.TryAdd(relativePath, saveData))
+                throw new InvalidOperationException($"SaveData {relativePath} is already in use");
+            
+            if (!_syncStatuses.TryAdd(relativePath, isSync))
+                throw new InvalidOperationException($"SaveData {relativePath} is already in use");
+        }
+
+        public static bool GetIsSync(string relativePath) => 
+            _syncStatuses.TryGetValue(relativePath, out var isSync) 
+                ? isSync 
+                : throw new NullReferenceException("There is no Sync Status");
+
+        private static void SetIsSync(string relativePath, bool isSync)
+        {
+            if (!_syncStatuses.ContainsKey(relativePath))
+                throw new KeyNotFoundException($"SaveData {relativePath} is not found");
+            
+            _syncStatuses[relativePath] = isSync;
+        }
+
+        public static void SaveToFile()
+        {
+            foreach (var relativePath in _saveDatas.Keys) 
+                SaveToFile(relativePath);
+        }
+        
+        public static void SaveToFile(string relativePath)
+        {
+            if (GetIsSync(relativePath)) return;
+            
+            if (_saveDatas.TryGetValue(relativePath, out var saveData))
+            {
+                if (saveData == null)
+                    throw new NullReferenceException("SaveData is null");
+                
+                saveData.Save(GetFullPath(relativePath));
+                
+                SetIsSync(relativePath, true);
+            }
+        }
+
+        #region GetAndSetValues
+
+        public static T GetValue<T>(string relativePath, SaveKey saveKey, T defaultValue)
+        {
+            var saveData = GetSaveData(relativePath);
+
+            return saveData.GetKey(saveKey, defaultValue);
+        }
+
+        public static void SetValue<T>(string relativePath, SaveKey saveKey, T value, bool saveToFile = true)
+        {
+            var saveData = GetSaveData(relativePath);
+
+            if (saveData.TryGetKey(saveKey, out T currentValue))
+            {
+                if (currentValue == null && value == null) return;
+                
+                if (currentValue != null && currentValue.Equals(value)) return;
+            }
+            
+            saveData.SetKey(saveKey, value);
+            
+            SetIsSync(relativePath, false);
+            
+            if (saveToFile) 
+                SaveToFile(relativePath);
+        }
+
+        #endregion
+    }
+    
     [Serializable]
     public struct SaveVar<T> : IEquatable<SaveVar<T>>
     {
-        private static Dictionary<string, SaveData> _saveDatas = new();
-        private static Dictionary<string, bool> _saveStatus = new();
-        
-        public SaveData SaveData => _saveDatas[RelativePath];
-
-        public bool IsSync
-        {
-            get => _saveStatus.TryGetValue(RelativePath, out var isSync) && isSync;
-            private set => _saveStatus[RelativePath] = value;
-        }
-
         [field: SerializeField] public SaveKey SaveKey { get; private set; }
         [field: SerializeField] public T DefaultValue { get; private set; }
 
         public T Value
         {
-            get
-            {
-                if (!IsSync) 
-                    Sync();
-                
-                var value = GetValueWithoutSaveing();
-
-                if (SaveData.IsKeyExist(SaveKey)) return value;
-                
-                SaveData.SetKey(SaveKey, value);
-                Sync();
-
-                return value;
-            }
-            set
-            {
-                SaveData.SetKey(SaveKey, value);
-                Sync();
-            }
+            get => SaveVarStorage.GetValue(RelativePath, SaveKey, DefaultValue);
+            set => SaveVarStorage.SetValue(RelativePath, SaveKey, value);
         }
-
-        public string SavePath => Application.persistentDataPath + "/" + RelativePath;
 
         public readonly string RelativePath;
 
-        public T GetValueWithoutSaveing() => 
-            SaveData.GetKey(SaveKey, DefaultValue);
-
-        public void SetValueWithoutSaveing(T value)
-        {
-            SaveData.SetKey(SaveKey, value);
-            IsSync = false;
-        }
-
-        public bool TrySaveToFile()
-        {
-            if (IsSync) 
-                return false;
-
-            Sync();
-            
-            return true;
-        }
-
-        public void Sync()
-        {
-            SaveData.Save(SavePath);
-            IsSync = true;
-        }
+        public void SetValueWithoutSaveing(T value) => 
+            SaveVarStorage.SetValue(RelativePath, SaveKey, value, false);
 
         #region Constructors
 

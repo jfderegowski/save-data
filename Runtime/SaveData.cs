@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using fefek5.SaveDataVariable.Runtime.Extensions;
 using fefek5.SaveDataVariable.Runtime.Settings;
 using fefek5.SerializableGuidVariable.Runtime;
@@ -1330,6 +1332,45 @@ namespace fefek5.SaveDataVariable.Runtime
             }
         }
 
+
+        /// <summary>
+        /// Save data to file. Unlike <see cref="SaveAsync(string, SaveSettings, Action)"/> this overload
+        /// can be awaited and propagates exceptions to the caller instead of only logging them.
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <param name="saveSettings">Settings for saving</param>
+        /// <param name="cancellationToken">Token that cancels the write</param>
+        public async Task SaveAsync(string path, SaveSettings saveSettings, CancellationToken cancellationToken)
+        {
+            saveSettings ??= SaveSettings.Default;
+
+            var jsonString = ToJson(saveSettings);
+
+            if (saveSettings.UseEncryption)
+            {
+                var password = saveSettings.Encryption.Password;
+                var salt = saveSettings.Encryption.Salt;
+                var initVector = saveSettings.Encryption.InitVector;
+
+                jsonString = jsonString.Encrypt(password, salt, initVector);
+            }
+
+            // Create directory if it doesn't exist
+            var directoryPath = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                Directory.CreateDirectory(directoryPath);
+
+            await File.WriteAllTextAsync(path, jsonString, cancellationToken);
+
+            // Delete excess files
+            if (saveSettings.UsedFileLimit)
+                DeleteExcessFiles(directoryPath, "*sav", saveSettings.FileLimit);
+
+            Debug.Log($"[SAVE-DATA] Saved to file: {path} "
+                      + $"{directoryPath.ToFileLink("[Folder]")} "
+                      + $"{path.ToFileLink("[File]")}");
+        }
+
         #endregion
 
         #region Load
@@ -1455,6 +1496,44 @@ namespace fefek5.SaveDataVariable.Runtime
                 Debug.Log($"[SAVE-DATA] Error on load completion read the exception bellow");
                 Debug.LogError(e);
             }
+        }
+
+
+        /// <summary>
+        /// Load data from file. Unlike <see cref="LoadAsync(string, SaveSettings, Action)"/> this overload
+        /// can be awaited and propagates exceptions to the caller instead of only logging them.
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <param name="saveSettings">Settings for loading</param>
+        /// <param name="cancellationToken">Token that cancels the read</param>
+        public async Task LoadAsync(string path, SaveSettings saveSettings, CancellationToken cancellationToken)
+        {
+            saveSettings ??= SaveSettings.Default;
+
+            var jsonSerializerSettings = saveSettings.UseJsonCustomSettings
+                ? saveSettings.JsonCustomSettings.JsonSerializerSettings
+                : new JsonSerializerSettings();
+
+            var jsonText = await File.ReadAllTextAsync(path, cancellationToken);
+
+            if (saveSettings.UseEncryption)
+            {
+                var password = saveSettings.Encryption.Password;
+                var salt = saveSettings.Encryption.Salt;
+                var initVector = saveSettings.Encryption.InitVector;
+
+                jsonText = jsonText.Decrypt(password, salt, initVector);
+            }
+
+            var saveData = !jsonText.IsBlank()
+                ? FromJson(jsonText, jsonSerializerSettings)
+                : new SaveData();
+
+            Data = saveData.Data;
+
+            Debug.Log($"[SAVE-DATA] Loaded from File: {path} "
+                      + $"{Path.GetDirectoryName(path).ToFileLink("[Folder]")} "
+                      + $"{path.ToFileLink("[File]")}");
         }
 
         #endregion

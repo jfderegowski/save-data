@@ -15,7 +15,7 @@ namespace fefek5.SaveDataVariable.Editor
         {
             _saveVar = property.GetTarget<SaveVar>();
 
-            var saveVarProp = new ValueDropDownElement(property.displayName);
+            var saveVarProp = new FoldoutWithValueElement(property.displayName);
             
             var currentValue = new TextElement() {
                 text = _saveVar.ToString()

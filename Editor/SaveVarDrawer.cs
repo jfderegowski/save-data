@@ -3,21 +3,22 @@ using fefek5.Toys.Editor.Editors;
 using fefek5.Toys.Editor.VisualElements;
 using UnityEditor;
 using UnityEngine.UIElements;
+using Button = UnityEngine.UIElements.Button;
 
 namespace fefek5.SaveDataVariable.Editor
 {
     [CustomPropertyDrawer(typeof(SaveVar), true)]
     public class SaveVarDrawer : PropertyDrawer
     {
-        private SaveVar _saveVar;
-        
         public override VisualElement CreatePropertyGUI(SerializedProperty property)
         {
-            _saveVar = property.GetTarget<SaveVar>();
+            var saveVar = property.GetTarget<SaveVar>();
 
-            var textField = new Label(_saveVar.StringValue);
-
-            var saveVarProp = new FoldoutCustomHeaderElement(property.displayName, textField);
+            var valueText = new TextElement() {
+                text = saveVar.StringValue
+            };
+            
+            var foldout = new FoldoutElement(property, valueText);
 
             var buttonsContent = new VisualElement() {
                 style = {
@@ -25,30 +26,26 @@ namespace fefek5.SaveDataVariable.Editor
                 }
             };
             
-            var pullButton = new InspectorButtonElement(this, nameof(Pull)) {
-                style = { flexGrow = 1, flexBasis = 0 }
+            var pullButton = new Button(Pull) {
+                text = "Pull",
+                style = { flexGrow = 1, flexBasis = 0 },
             };
             
-            var pushButton = new InspectorButtonElement(this, nameof(Push)) {
+            var pushButton = new Button(Push) {
+                text = "Push",
                 style = { flexGrow = 1, flexBasis = 0 }
             };
 
             buttonsContent.Add(pullButton);
             buttonsContent.Add(pushButton);
 
-            saveVarProp.Add(buttonsContent);
+            foldout.Add(buttonsContent);
             
-            return saveVarProp;
+            return foldout;
+            
+            void Pull() => saveVar.PullAsync();
+
+            void Push() => saveVar.PushAsync();
         }
-
-        private void Pull() => _saveVar.PullAsync();
-
-        private void Push() => _saveVar.PushAsync();
-    }
-
-    [CustomPropertyDrawer(typeof(SaveVar<>), true)]
-    public class SaveVarGenericDrawer<T> : SaveVarDrawer
-    {
-        
     }
 }

@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace fefek5.SaveDataVariable.Editor
 {
-    [CustomPropertyDrawer(typeof(SaveVar<>), true)]
+    [CustomPropertyDrawer(typeof(SaveVar), true)]
     public class SaveVarDrawer : PropertyDrawer
     {
         private SaveVar _saveVar;
@@ -15,13 +15,9 @@ namespace fefek5.SaveDataVariable.Editor
         {
             _saveVar = property.GetTarget<SaveVar>();
 
-            var saveVarProp = new FoldoutWithValueElement(property.displayName);
-            
-            var currentValue = new TextElement() {
-                text = _saveVar.ToString()
-            };
-            
-            saveVarProp.ValueContent.Add(currentValue);
+            var textField = new Label(_saveVar.StringValue);
+
+            var saveVarProp = new FoldoutCustomHeaderElement(property.displayName, textField);
 
             var buttonsContent = new VisualElement() {
                 style = {
@@ -48,5 +44,11 @@ namespace fefek5.SaveDataVariable.Editor
         private void Pull() => _saveVar.PullAsync();
 
         private void Push() => _saveVar.PushAsync();
+    }
+
+    [CustomPropertyDrawer(typeof(SaveVar<>), true)]
+    public class SaveVarGenericDrawer<T> : SaveVarDrawer
+    {
+        
     }
 }

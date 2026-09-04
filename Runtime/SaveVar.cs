@@ -452,6 +452,29 @@ namespace fefek5.SaveDataVariable.Runtime
 
         #endregion
 
+        #region Properties
+
+        /// <summary>
+        /// False when the value was changed but not written to the file yet.
+        /// </summary>
+        public bool IsSync => !_isDirty;
+
+        /// <summary>
+        /// True when the save file was read from the disk. While false, the variable reports its default
+        /// value rather than whatever the file holds.
+        /// </summary>
+        public bool IsLoaded => IsConfigured && SaveVarStorage.IsLoaded(RelativePath);
+
+        /// <summary>
+        /// True when the variable points at a file. A variable left empty in the inspector still works as a
+        /// plain value holder, it just never reaches the disk.
+        /// </summary>
+        public bool IsConfigured => !string.IsNullOrEmpty(RelativePath);
+
+        public string StringValue => GetStringValue();
+        
+        #endregion
+        
         #region Inspector Fields
 
         /// <summary>
@@ -471,27 +494,6 @@ namespace fefek5.SaveDataVariable.Runtime
         // Never serialized. The inspector holds the setup, not the runtime state.
         [NonSerialized] private bool _isDirty;
         [NonSerialized] private bool _isRegistered;
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// False when the value was changed but not written to the file yet.
-        /// </summary>
-        public bool IsSync => !_isDirty;
-
-        /// <summary>
-        /// True when the save file was read from the disk. While false, the variable reports its default
-        /// value rather than whatever the file holds.
-        /// </summary>
-        public bool IsLoaded => IsConfigured && SaveVarStorage.IsLoaded(RelativePath);
-
-        /// <summary>
-        /// True when the variable points at a file. A variable left empty in the inspector still works as a
-        /// plain value holder, it just never reaches the disk.
-        /// </summary>
-        public bool IsConfigured => !string.IsNullOrEmpty(RelativePath);
 
         #endregion
 
@@ -519,6 +521,12 @@ namespace fefek5.SaveDataVariable.Runtime
 
         #endregion
 
+        #region Getters and Setters
+
+        public virtual string GetStringValue() => ToString();
+
+        #endregion
+        
         #region SaveData
 
         /// <summary>
@@ -855,6 +863,11 @@ namespace fefek5.SaveDataVariable.Runtime
 
             if (IsConfigured)
                 SaveVarStorage.GetSaveData(RelativePath).SetKey(SaveKey, value);
+        }
+
+        public override string GetStringValue()
+        {
+            return Value?.ToString() ?? "null";
         }
 
         #endregion

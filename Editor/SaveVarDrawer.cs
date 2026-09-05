@@ -25,15 +25,13 @@ namespace fefek5.SaveDataVariable.Editor
                     flexDirection = FlexDirection.Row,
                 }
             };
-            
-            var pullButton = new Button(Pull) {
-                text = "Pull",
+
+            var pullButton = new InspectorButtonElement(Pull, "Pull") {
                 style = { flexGrow = 1, flexBasis = 0 },
             };
-            
-            var pushButton = new Button(Push) {
-                text = "Push",
-                style = { flexGrow = 1, flexBasis = 0 }
+
+            var pushButton = new InspectorButtonElement(Push, "Push") {
+                style = { flexGrow = 1, flexBasis = 0 },
             };
 
             buttonsContent.Add(pullButton);

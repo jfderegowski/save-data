@@ -94,7 +94,7 @@ namespace fefek5.SaveDataVariable.Runtime
             {
                 foreach (var saveVar in GetSaveVars(relativePath))
                 {
-                    if (saveVar.IsSync) continue;
+                    if (!saveVar.IsDirty) continue;
 
                     yield return relativePath;
 
@@ -278,7 +278,7 @@ namespace fefek5.SaveDataVariable.Runtime
                     .SaveAsync(GetFullPath(relativePath), saveSettings, cancellationToken);
 
                 foreach (var saveVar in saveVars)
-                    saveVar.MarkSynced();
+                    saveVar.MarkClean();
 
                 _loadedPaths.Add(relativePath);
 
@@ -351,7 +351,7 @@ namespace fefek5.SaveDataVariable.Runtime
                     GetSaveData(relativePath).Save(GetFullPath(relativePath), saveSettings);
 
                     foreach (var saveVar in saveVars)
-                        saveVar.MarkSynced();
+                        saveVar.MarkClean();
 
                     _loadedPaths.Add(relativePath);
 
@@ -441,9 +441,9 @@ namespace fefek5.SaveDataVariable.Runtime
         #region Events
 
         /// <summary>
-        /// Invoked when <see cref="IsSync"/> flips. False right after a change, true right after a push or pull.
+        /// Invoked when <see cref="IsDirty"/> flips. True right after a change, false right after a push or pull.
         /// </summary>
-        public event Action<bool> onIsSyncChanged;
+        public event Action<bool> onIsDirtyChanged;
 
         /// <summary>
         /// Invoked when a push or a pull failed. The exception is rethrown to the caller as well.
@@ -455,9 +455,9 @@ namespace fefek5.SaveDataVariable.Runtime
         #region Properties
 
         /// <summary>
-        /// False when the value was changed but not written to the file yet.
+        /// True when the value was changed but not written to the file yet.
         /// </summary>
-        public bool IsSync => !_isDirty;
+        [field: NonSerialized] public bool IsDirty { get; private set; }
 
         /// <summary>
         /// True when the save file was read from the disk. While false, the variable reports its default
@@ -492,7 +492,6 @@ namespace fefek5.SaveDataVariable.Runtime
         #region Runtime State
 
         // Never serialized. The inspector holds the setup, not the runtime state.
-        [NonSerialized] private bool _isDirty;
         [NonSerialized] private bool _isRegistered;
 
         #endregion
@@ -542,7 +541,7 @@ namespace fefek5.SaveDataVariable.Runtime
         /// <summary>
         /// Mark the variable as written to the file.
         /// </summary>
-        public virtual void MarkSynced() => SetIsSync(true);
+        public virtual void MarkClean() => SetIsDirty(false);
 
         #endregion
 
@@ -551,14 +550,15 @@ namespace fefek5.SaveDataVariable.Runtime
         /// <summary>
         /// Write the value to its save file.
         /// </summary>
-        public Task PushAsync() => PushAsync(SaveSettings.Default, CancellationToken.None);
+        public async Task PushAsync() => 
+            await PushAsync(SaveSettings.Default, CancellationToken.None);
 
         /// <summary>
         /// Write the value to its save file.
         /// </summary>
         /// <param name="cancellationToken">Token that cancels the write</param>
-        public Task PushAsync(CancellationToken cancellationToken) =>
-            PushAsync(SaveSettings.Default, cancellationToken);
+        public async Task PushAsync(CancellationToken cancellationToken) =>
+            await PushAsync(SaveSettings.Default, cancellationToken);
 
         /// <summary>
         /// Write the value to its save file. The whole file is written, so every other variable of that
@@ -655,16 +655,16 @@ namespace fefek5.SaveDataVariable.Runtime
         protected abstract void RaisePulled();
 
         /// <summary>
-        /// Set the sync flag and raise <see cref="onIsSyncChanged"/> when it actually changed.
+        /// Set the dirty flag and raise <see cref="onIsDirtyChanged"/> when it actually changed.
         /// </summary>
-        /// <param name="isSync">True when the value matches the file</param>
-        protected void SetIsSync(bool isSync)
+        /// <param name="isDirty">True when the value differs from the file</param>
+        protected void SetIsDirty(bool isDirty)
         {
-            if (IsSync == isSync) return;
+            if (IsDirty == isDirty) return;
 
-            _isDirty = !isSync;
+            IsDirty = isDirty;
 
-            onIsSyncChanged?.Invoke(isSync);
+            onIsDirtyChanged?.Invoke(isDirty);
         }
 
         /// <summary>
@@ -719,10 +719,10 @@ namespace fefek5.SaveDataVariable.Runtime
     /// await SaveVar2Storage.PreloadAsync("player.sav");
     ///
     /// // gameplay, no disk access
-    /// _hp.Value -= 10;        // IsSync == false
+    /// _hp.Value -= 10;        // IsDirty == true
     ///
     /// // checkpoint
-    /// await _hp.PushAsync();  // IsSync == true
+    /// await _hp.PushAsync();  // IsDirty == false
     /// </code>
     /// </example>
     /// <typeparam name="T">Type of the stored value</typeparam>
@@ -833,7 +833,7 @@ namespace fefek5.SaveDataVariable.Runtime
             if (EqualityComparer<T>.Default.Equals(oldValue, value)) return;
 
             WriteValue(value);
-            SetIsSync(false);
+            SetIsDirty(true);
 
             onValueChanged?.Invoke(oldValue, value);
         }
@@ -848,7 +848,7 @@ namespace fefek5.SaveDataVariable.Runtime
             if (EqualityComparer<T>.Default.Equals(GetValue(), value)) return;
 
             WriteValue(value);
-            SetIsSync(false);
+            SetIsDirty(true);
         }
 
         /// <summary>
@@ -887,7 +887,7 @@ namespace fefek5.SaveDataVariable.Runtime
             _value = newValue;
             _hasValue = true;
 
-            SetIsSync(true);
+            SetIsDirty(false);
 
             if (!EqualityComparer<T>.Default.Equals(oldValue, newValue))
                 onValueChanged?.Invoke(oldValue, newValue);

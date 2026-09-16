@@ -77,11 +77,11 @@ namespace fefek5.SaveDataVariable.Editor
             foldout.Add(buttonsContent);
 
             saveVar.onSyncFailed += OnSyncFailed;
-            saveVar.onIsSyncChanged += OnIsSyncChanged;
+            saveVar.onIsDirtyChanged += OnIsDirtyChanged;
 
             foldout.RegisterCallback<DetachFromPanelEvent>(_ => {
                 saveVar.onSyncFailed -= OnSyncFailed;
-                saveVar.onIsSyncChanged -= OnIsSyncChanged;
+                saveVar.onIsDirtyChanged -= OnIsDirtyChanged;
             });
 
             foldout.schedule.Execute(Refresh).Every(REFRESH_INTERVAL_MS);
@@ -108,9 +108,9 @@ namespace fefek5.SaveDataVariable.Editor
                 Refresh();
             }
 
-            void OnIsSyncChanged(bool isSync)
+            void OnIsDirtyChanged(bool isDirty)
             {
-                if (isSync) lastError = null;
+                if (!isDirty) lastError = null;
             }
 
             void Refresh()
@@ -119,8 +119,8 @@ namespace fefek5.SaveDataVariable.Editor
 
                 var color = lastError != null ? _failedColor
                     : !saveVar.IsConfigured ? _unconfiguredColor
-                    : saveVar.IsSync ? _syncedColor
-                    : _dirtyColor;
+                    : saveVar.IsDirty ? _dirtyColor
+                    : _syncedColor;
 
                 // Puste kółko = plik nie został jeszcze wczytany, więc zmienna raportuje default.
                 var filled = lastError != null || !saveVar.IsConfigured || saveVar.IsLoaded;
@@ -142,9 +142,9 @@ namespace fefek5.SaveDataVariable.Editor
                 if (!saveVar.IsConfigured)
                     return $"No {nameof(SaveVar.RelativePath)} — the value never reaches the disk";
 
-                var state = saveVar.IsSync
-                    ? "Synced"
-                    : "Not synced — changed since the last push";
+                var state = saveVar.IsDirty
+                    ? "Not synced — changed since the last push"
+                    : "Synced";
 
                 var loaded = saveVar.IsLoaded
                     ? string.Empty

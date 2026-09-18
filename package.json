@@ -6,8 +6,11 @@
   "unity": "6000.0",
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.fefek5.has-value" : "https://github.com/jfderegowski/has-value.git"
- },
+    "com.fefek5.has-value": "https://github.com/jfderegowski/variable-has-value.git",
+    "com.fefek5.serializable-guid": "https://github.com/jfderegowski/serializable-guid.git",
+    "com.fefek5.resources-scriptable-object-singleton-system": "https://github.com/jfderegowski/resources-scriptable-object-singleton-system.git",
+    "com.fefek5.toys-for-unity": "https://github.com/jfderegowski/toys-for-unity.git"
+  },
   "author": {
     "name": "fefek5",
     "url": "https://github.com/jfderegowski"

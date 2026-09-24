@@ -86,7 +86,7 @@ namespace fefek5.SaveDataVariable.Samples
         }
 
         [ContextMenu("Save")]
-        public void Save()
+        public async void Save()
         {
             _saveData
                 .SetKey("ExampleStruct", _exampleStruct)
@@ -104,13 +104,15 @@ namespace fefek5.SaveDataVariable.Samples
                 .SetKey("ExampleList", _exampleList)
                 .SetKey("ExampleTransform", _exampleTransform);
             
-            _saveData.SaveAsync(SaveFilePath);
+            await _saveData.SaveAsync(SaveFilePath);
         }
 
         [ContextMenu("Load")]
-        public void Load()
+        public async void Load()
         {
-            _saveData.LoadAsync(SaveFilePath, SetValues);
+            await _saveData.LoadAsync(SaveFilePath);
+
+            SetValues();
         }
 
         private void SetValues()

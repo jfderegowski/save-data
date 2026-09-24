@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using fefek5.SaveDataVariable.Runtime;
@@ -30,10 +30,8 @@ namespace fefek5.SaveDataVariable.Editor
         {
             var saveVar = property.GetTarget<SaveVar>();
 
-            Exception lastError = null;
-
             var valueText = new TextElement() {
-                text = saveVar.StringValue
+                text = saveVar.ToString()
             };
 
             var statusDot = CreateStatusDot();
@@ -76,81 +74,40 @@ namespace fefek5.SaveDataVariable.Editor
             foldout.Add(setValueButton);
             foldout.Add(buttonsContent);
 
-            saveVar.onSyncFailed += OnSyncFailed;
-            saveVar.onIsDirtyChanged += OnIsDirtyChanged;
-
-            foldout.RegisterCallback<DetachFromPanelEvent>(_ => {
-                saveVar.onSyncFailed -= OnSyncFailed;
-                saveVar.onIsDirtyChanged -= OnIsDirtyChanged;
-            });
-
             foldout.schedule.Execute(Refresh).Every(REFRESH_INTERVAL_MS);
 
             Refresh();
 
             return foldout;
 
-            void Pull()
-            {
-                lastError = null;
-                LogFailure(saveVar.PullAsync());
-            }
+            void Pull() => saveVar.PullAsync();
 
-            void Push()
-            {
-                lastError = null;
-                LogFailure(saveVar.PushAsync());
-            }
-
-            void OnSyncFailed(Exception exception)
-            {
-                lastError = exception;
-                Refresh();
-            }
-
-            void OnIsDirtyChanged(bool isDirty)
-            {
-                if (!isDirty) lastError = null;
-            }
+            void Push() => saveVar.PushAsync();
 
             void Refresh()
             {
-                valueText.text = saveVar.StringValue;
+                valueText.text = saveVar.ToString();
 
-                var color = lastError != null ? _failedColor
-                    : !saveVar.IsConfigured ? _unconfiguredColor
-                    : saveVar.IsDirty ? _dirtyColor
+                var color = saveVar.IsDirty
+                    ? _dirtyColor
                     : _syncedColor;
 
-                // Puste kółko = plik nie został jeszcze wczytany, więc zmienna raportuje default.
-                var filled = lastError != null || !saveVar.IsConfigured || saveVar.IsLoaded;
-
-                SetDotColor(statusDot, color, filled);
+                SetDotColor(statusDot, color, true);
 
                 statusDot.tooltip = BuildTooltip();
 
                 // Bez ścieżki push/pull nie ma dokąd pisać, więc przyciski gasną.
-                pullButton.SetEnabled(saveVar.IsConfigured);
-                pushButton.SetEnabled(saveVar.IsConfigured);
+                pullButton.SetEnabled(saveVar.IsDirty);
+                pushButton.SetEnabled(saveVar.IsDirty);
             }
 
             string BuildTooltip()
             {
-                if (lastError != null)
-                    return $"Last sync failed — {lastError.Message}";
-
-                if (!saveVar.IsConfigured)
-                    return $"No {nameof(SaveVar.RelativePath)} — the value never reaches the disk";
-
                 var state = saveVar.IsDirty
                     ? "Not synced — changed since the last push"
                     : "Synced";
 
-                var loaded = saveVar.IsLoaded
-                    ? string.Empty
-                    : "\nFile not loaded — reporting the default value";
-
-                return $"{state}\n{saveVar.RelativePath}{loaded}";
+                return $"{state}\n{saveVar.RelativePath}";
             }
         }
 
@@ -172,15 +129,6 @@ namespace fefek5.SaveDataVariable.Editor
                     borderLeftWidth = 1,
                 }
             };
-
-        // Push/Pull odpalamy bez await, więc wyjątek wylądowałby w nieobserwowanym
-        // Tasku i zniknął. Odczyt Exception oznacza go jako obsłużony.
-        private static void LogFailure(Task task) =>
-            task.ContinueWith(
-                faulted => Debug.LogException(faulted.Exception.GetBaseException()),
-                CancellationToken.None,
-                TaskContinuationOptions.OnlyOnFaulted,
-                TaskScheduler.Default);
 
         private static void SetDotColor(VisualElement dot, Color color, bool filled)
         {

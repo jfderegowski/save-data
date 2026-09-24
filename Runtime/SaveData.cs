@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using fefek5.SaveDataVariable.Runtime.Extensions;
 using fefek5.SaveDataVariable.Runtime.Settings;
 using fefek5.SerializableGuidVariable.Runtime;
@@ -418,297 +417,47 @@ namespace fefek5.SaveDataVariable.Runtime
         }
 
         /// <summary>
-        /// Get value from file by string
+        /// Read one value straight from a file, without keeping the rest of the file.
+        /// A missing file gives the default value.
         /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
         /// </summary>
         /// <param name="filePath">The path to the file</param>
         /// <param name="saveKey">Key for searching in Data</param>
         /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
+        /// <param name="cancellationToken">Token that cancels the read</param>
         /// <typeparam name="T">Type of value</typeparam>
         /// <example>Example of getting position from <see cref="SaveData"/> directly from file
         /// <code>
-        /// private SaveData _saveData;
-        /// private SaveKey _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
+        /// transform.position = await SaveData.GetKeyAsync(_saveFilePath, "Position", Vector3.zero);
         /// </code>
         /// </example>
-        public static void GetKey<T>(string filePath, string saveKey, T defaultValue, Action<T> onGetKey) => 
-            GetKey(filePath, SaveSettings.Default, saveKey, defaultValue, onGetKey);
+        public static Awaitable<T> GetKeyAsync<T>(string filePath, SaveKey saveKey, T defaultValue,
+            CancellationToken cancellationToken = default) =>
+            GetKeyAsync(filePath, SaveSettings.Default, saveKey, defaultValue, cancellationToken);
 
         /// <summary>
-        /// Get value from file by string
+        /// Read one value straight from a file, without keeping the rest of the file.
+        /// A missing file gives the default value.
         /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
         /// </summary>
         /// <param name="filePath">The path to the file</param>
         /// <param name="saveSettings">Settings for loading</param>
         /// <param name="saveKey">Key for searching in Data</param>
         /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
+        /// <param name="cancellationToken">Token that cancels the read</param>
         /// <typeparam name="T">Type of value</typeparam>
-        /// <example>Example of getting position from <see cref="SaveData"/> directly from file
-        /// <code>
-        /// private SaveData _saveData;
-        /// private string _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveSettings, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
-        /// </code>
-        /// </example>
-        public static void GetKey<T>(string filePath, SaveSettings saveSettings, string saveKey, T defaultValue, Action<T> onGetKey)
+        public static async Awaitable<T> GetKeyAsync<T>(string filePath, SaveSettings saveSettings, SaveKey saveKey,
+            T defaultValue, CancellationToken cancellationToken = default)
         {
-            var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
+            if (!File.Exists(filePath)) return defaultValue;
 
-            void OnLoad()
-            {
-                tmpSaveData.GetKey(saveKey, defaultValue, out var value);
-                
-                onGetKey?.Invoke(value);
-            }
-        }
-        
-        /// <summary>
-        /// Get value from file by Guid
-        /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
-        /// <typeparam name="T">Type of value</typeparam>
-        /// <example>Example of getting position from <see cref="SaveData"/> directly from file
-        /// <code>
-        /// private SaveData _saveData;
-        /// private Guid _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
-        /// </code>
-        /// </example>
-        public static void GetKey<T>(string filePath, Guid saveKey, T defaultValue, Action<T> onGetKey) => 
-            GetKey(filePath, SaveSettings.Default, saveKey, defaultValue, onGetKey);
-        
-        /// <summary>
-        /// Get value from file by Guid
-        /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveSettings">Settings for loading</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
-        /// <typeparam name="T">Type of value</typeparam>
-        /// <example>Example of getting position from <see cref="SaveData"/> directly from file
-        /// <code>
-        /// private SaveData _saveData;
-        /// private Guid _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveSettings, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
-        /// </code>
-        /// </example>
-        public static void GetKey<T>(string filePath, SaveSettings saveSettings, Guid saveKey, T defaultValue, Action<T> onGetKey)
-        {
             var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
 
-            void OnLoad()
-            {
-                tmpSaveData.GetKey(saveKey, defaultValue, out var value);
-                
-                onGetKey?.Invoke(value);
-            }
-        }
-        
-        /// <summary>
-        /// Get value from file by SerializableGuid
-        /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
-        /// <typeparam name="T">Type of value</typeparam>
-        /// <example>Example of getting position from <see cref="SaveData"/> directly from file
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SerializableGuid _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
-        /// </code>
-        /// </example>
-        public static void GetKey<T>(string filePath, SerializableGuid saveKey, T defaultValue, Action<T> onGetKey) => 
-            GetKey(filePath, SaveSettings.Default, saveKey, defaultValue, onGetKey);
-        
-        /// <summary>
-        /// Get value from file by SerializableGuid
-        /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveSettings">Settings for loading</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
-        /// <typeparam name="T">Type of value</typeparam>
-        /// <example>Example of getting position from <see cref="SaveData"/> directly from file
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SerializableGuid _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveSettings, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
-        /// </code>
-        /// </example>
-        public static void GetKey<T>(string filePath, SaveSettings saveSettings, SerializableGuid saveKey, T defaultValue, Action<T> onGetKey)
-        {
-            var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
+            await tmpSaveData.LoadAsync(filePath, saveSettings, cancellationToken);
 
-            void OnLoad()
-            {
-                tmpSaveData.GetKey(saveKey, defaultValue, out var value);
-                
-                onGetKey?.Invoke(value);
-            }
+            return tmpSaveData.GetKey(saveKey, defaultValue);
         }
-        
-        /// <summary>
-        /// Get value from file by SaveKey
-        /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
-        /// <typeparam name="T">Type of value</typeparam>
-        /// <example>Example of getting position from <see cref="SaveData"/> directly from file
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SaveKey _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
-        /// </code>
-        /// </example>
-        public static void GetKey<T>(string filePath, SaveKey saveKey, T defaultValue, Action<T> onGetKey) => 
-            GetKey(filePath, SaveSettings.Default, saveKey, defaultValue, onGetKey);
-        
-        /// <summary>
-        /// Get value from file by SaveKey
-        /// Note! That this method is expensive (Deserialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveSettings">Settings for loading</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="defaultValue">Default value that will be returned if key is not found</param>
-        /// <param name="onGetKey">Action that will be invoked after load completion</param>
-        /// <typeparam name="T">Type of value</typeparam>
-        /// <example>Example of getting position from <see cref="SaveData"/> directly from file
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SaveKey _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void GetPositionFromSaveData()
-        /// {
-        ///     _saveData.GetKey(_saveFilePath, _saveSettings, _saveKey, Vector3.zero, OnGetKey);
-        /// }
-        ///  
-        /// private void OnGetKey(Vector3 position)
-        /// {
-        ///     transform.position = position;
-        /// }
-        /// </code>
-        /// </example>
-        public static void GetKey<T>(string filePath, SaveSettings saveSettings, SaveKey saveKey, T defaultValue, Action<T> onGetKey)
-        {
-            var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
 
-            void OnLoad()
-            {
-                tmpSaveData.GetKey(saveKey, defaultValue, out var value);
-                
-                onGetKey?.Invoke(value);
-            }
-        }
-        
         #endregion
 
         #region Setters
@@ -806,287 +555,44 @@ namespace fefek5.SaveDataVariable.Runtime
         }
         
         /// <summary>
-        /// Set value to Data by string
+        /// Write one value straight to a file, keeping the rest of the file as it is.
+        /// A missing file is created.
         /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
         /// </summary>
         /// <param name="filePath">The path to the file</param>
         /// <param name="saveKey">Key for searching in Data</param>
         /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey">Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
+        /// <param name="cancellationToken">Token that cancels the read and the write</param>
+        /// <example>Example of setting current position to <see cref="SaveData"/> directly in file
         /// <code>
-        /// private SaveData _saveData;
-        /// private string _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
+        /// await SaveData.SetKeyAsync(_saveFilePath, "Position", transform.position);
         /// </code>
         /// </example>
-        public void SetKey(string filePath, string saveKey, object value, Action onSetKey) => 
-            SetKey(filePath, SaveSettings.Default, saveKey, value, onSetKey);
+        public static Awaitable SetKeyAsync(string filePath, SaveKey saveKey, object value,
+            CancellationToken cancellationToken = default) =>
+            SetKeyAsync(filePath, SaveSettings.Default, saveKey, value, cancellationToken);
 
         /// <summary>
-        /// Set value to Data by string
+        /// Write one value straight to a file, keeping the rest of the file as it is.
+        /// A missing file is created.
         /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
         /// </summary>
         /// <param name="filePath">The path to the file</param>
-        /// <param name="saveSettings">Settings for saving</param>
+        /// <param name="saveSettings">Settings for loading and saving</param>
         /// <param name="saveKey">Key for searching in Data</param>
         /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey">Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
-        /// <code>
-        /// private SaveData _saveData;
-        /// private string _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveSettings, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
-        /// </code>
-        /// </example>
-        public static void SetKey(string filePath, SaveSettings saveSettings, string saveKey, object value, Action onSetKey)
+        /// <param name="cancellationToken">Token that cancels the read and the write</param>
+        public static async Awaitable SetKeyAsync(string filePath, SaveSettings saveSettings, SaveKey saveKey,
+            object value, CancellationToken cancellationToken = default)
         {
             var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
 
-            void OnLoad()
-            {
-                tmpSaveData.SetKey(saveKey, value);
-                
-                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
-            }
-        }
-        
-        /// <summary>
-        /// Set value to Data by Guid
-        /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveKey"><see cref="Guid"/> Save key for searching in Data</param>
-        /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey">Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
-        /// <code>
-        /// private SaveData _saveData;
-        /// private Guid _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
-        /// </code>
-        /// </example>
-        public static void SetKey(string filePath, Guid saveKey, object value, Action onSetKey) => 
-            SetKey(filePath, SaveSettings.Default, saveKey, value, onSetKey);
-        
-        /// <summary>
-        /// Set value to Data by Guid
-        /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveSettings">Settings for saving</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey">Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
-        /// <code>
-        /// private SaveData _saveData;
-        /// private Guid _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveSettings, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
-        /// </code>
-        /// </example>
-        public static void SetKey(string filePath, SaveSettings saveSettings, Guid saveKey, object value, Action onSetKey)
-        {
-            var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
+            if (File.Exists(filePath))
+                await tmpSaveData.LoadAsync(filePath, saveSettings, cancellationToken);
 
-            void OnLoad()
-            {
-                tmpSaveData.SetKey(saveKey, value);
-                
-                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
-            }
-        }
-        
-        /// <summary>
-        /// Set value to Data by SerializableGuid
-        /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveKey"><see cref="SerializableGuid"/> Save key for searching in Data</param>
-        /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey"><see cref="Action"/> Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SerializableGuid _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
-        /// </code>
-        /// </example>
-        public static void SetKey(string filePath, SerializableGuid saveKey, object value, Action onSetKey) => 
-            SetKey(filePath, SaveSettings.Default, saveKey, value, onSetKey);
-        
-        /// <summary>
-        /// Set value to Data by SerializableGuid
-        /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveSettings">Settings for saving</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey">Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SerializableGuid _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveSettings, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
-        /// </code>
-        /// </example>
-        public static void SetKey(string filePath, SaveSettings saveSettings, SerializableGuid saveKey, object value, Action onSetKey)
-        {
-            var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
+            tmpSaveData.SetKey(saveKey, value);
 
-            void OnLoad()
-            {
-                tmpSaveData.SetKey(saveKey, value);
-                
-                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
-            }
-        }
-        
-        /// <summary>
-        /// Set value to Data by SaveKey
-        /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveKey"><see cref="SaveKey"/> Save key for searching in Data</param>
-        /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey"><see cref="Action"/> Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SaveKey _saveKey;
-        /// private string _saveFilePath;
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
-        /// </code>
-        /// </example>
-        public static void SetKey(string filePath, SaveKey saveKey, object value, Action onSetKey) => 
-            SetKey(filePath, SaveSettings.Default, saveKey, value, onSetKey);
-        
-        /// <summary>
-        /// Set value to Data by SaveKey
-        /// Note! That this method is expensive (Deserialize and Serialize Json in every call) and should be used only when needed
-        /// </summary>
-        /// <param name="filePath">The path to the file</param>
-        /// <param name="saveSettings">Settings for saving</param>
-        /// <param name="saveKey">Key for searching in Data</param>
-        /// <param name="value">Value to be set</param>
-        /// <param name="onSetKey">Callback that will be invoked after save completion</param>
-        /// <example>Example of setting current position to <see cref="SaveData"/>
-        /// <code>
-        /// private SaveData _saveData;
-        /// private SaveKey _saveKey;
-        /// private string _saveFilePath;
-        /// private SaveSettings _saveSettings
-        ///  
-        /// private void SetCurrentPosition()
-        /// {
-        ///     _saveData.SetKey(_saveFilePath, _saveSettings, _saveKey, transform.position, OnSetKey);
-        /// }
-        ///  
-        /// private void OnSetKey()
-        /// {
-        ///     Debug.Log("[Alert] Position saved");
-        /// }
-        /// </code>
-        /// </example>
-        public static void SetKey(string filePath, SaveSettings saveSettings, SaveKey saveKey, object value, Action onSetKey)
-        {
-            var tmpSaveData = new SaveData();
-            
-            tmpSaveData.LoadAsync(filePath, saveSettings, OnLoad);
-            
-            return;
-
-            void OnLoad()
-            {
-                tmpSaveData.SetKey(saveKey, value);
-                
-                tmpSaveData.SaveAsync(filePath, saveSettings, onSetKey);
-            }
+            await tmpSaveData.SaveAsync(filePath, saveSettings, cancellationToken);
         }
 
         #endregion
@@ -1204,7 +710,7 @@ namespace fefek5.SaveDataVariable.Runtime
         #endregion
 
         #region Save
-        
+
         /// <summary>
         /// Save data to file
         /// </summary>
@@ -1222,108 +728,7 @@ namespace fefek5.SaveDataVariable.Runtime
             {
                 saveSettings ??= SaveSettings.Default;
 
-                var jsonString = ToJson(saveSettings);
-
-                if (saveSettings.UseEncryption)
-                {
-                    var password = saveSettings.Encryption.Password;
-                    var salt = saveSettings.Encryption.Salt;
-                    var initVector = saveSettings.Encryption.InitVector;
-
-                    jsonString = jsonString.Encrypt(password, salt, initVector);
-                }
-
-                // Create directory if it doesn't exist
-                var directoryPath = Path.GetDirectoryName(path);
-                if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
-                    Directory.CreateDirectory(directoryPath);
-
-
-                File.WriteAllText(path, jsonString);
-
-                // Delete excess files
-                if (saveSettings.UsedFileLimit)
-                    DeleteExcessFiles(directoryPath, "*sav", saveSettings.FileLimit);
-
-                Debug.Log($"[SAVE-DATA] Saved to file: {path} "
-                          + $"{directoryPath.ToFileLink("[Folder]")} "
-                          + $"{path.ToFileLink("[File]")}");
-            }
-            catch (Exception e)
-            {
-                Debug.Log($"[SAVE-DATA] Error on save completion read the exception bellow");
-                Debug.LogError(e);
-            }
-        }
-        
-        /// <summary>
-        /// Save data to file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        public void SaveAsync(string path) => SaveAsync(path, SaveSettings.Default);
-        
-        /// <summary>
-        /// Save data to file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        /// <param name="saveSettings">Settings for saving</param>
-        public void SaveAsync(string path, SaveSettings saveSettings) => SaveAsync(path, saveSettings, null);
-        
-        /// <summary>
-        /// Save data to file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        /// <param name="onSave">Action that will be invoked after save completion</param>
-        public void SaveAsync(string path, Action onSave) => SaveAsync(path, SaveSettings.Default, onSave);
-
-        /// <summary>
-        /// Save data to file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        /// <param name="saveSettings">Settings for saving</param>
-        /// <param name="onSave">Action that will be invoked after save completion</param>
-        public async void SaveAsync(string path, SaveSettings saveSettings, Action onSave)
-        {
-            try
-            {
-                try
-                {
-                    saveSettings ??= SaveSettings.Default;
-
-                    var jsonString = ToJson(saveSettings);
-
-                    if (saveSettings.UseEncryption)
-                    {
-                        var password = saveSettings.Encryption.Password;
-                        var salt = saveSettings.Encryption.Salt;
-                        var initVector = saveSettings.Encryption.InitVector;
-
-                        jsonString = jsonString.Encrypt(password, salt, initVector);
-                    }
-
-                    // Create directory if it doesn't exist
-                    var directoryPath = Path.GetDirectoryName(path);
-                    if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
-                        Directory.CreateDirectory(directoryPath);
-
-
-                    await File.WriteAllTextAsync(path, jsonString);
-
-                    // Delete excess files
-                    if (saveSettings.UsedFileLimit)
-                        DeleteExcessFiles(directoryPath, "*sav", saveSettings.FileLimit);
-
-                    Debug.Log($"[SAVE-DATA] Saved to file: {path} "
-                              + $"{directoryPath.ToFileLink("[Folder]")} "
-                              + $"{path.ToFileLink("[File]")}");
-                }
-                catch (Exception e)
-                {
-                    Debug.Log($"[SAVE-DATA] Error on save completion read the exception bellow");
-                    Debug.LogError(e);
-                }
-
-                onSave?.Invoke();
+                SaveCore(path, ToJson(saveSettings), saveSettings, CancellationToken.None);
             }
             catch (Exception e)
             {
@@ -1332,20 +737,53 @@ namespace fefek5.SaveDataVariable.Runtime
             }
         }
 
+        /// <summary>
+        /// Save data to file. The json is built on the main thread, so it holds Data as it is at the call,
+        /// then the encryption and the write run on a background thread.
+        /// Unlike <see cref="Save(string)"/> this propagates exceptions to the caller instead of only logging them.
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <param name="cancellationToken">Token that cancels the write</param>
+        public Awaitable SaveAsync(string path, CancellationToken cancellationToken = default) =>
+            SaveAsync(path, SaveSettings.Default, cancellationToken);
 
         /// <summary>
-        /// Save data to file. Unlike <see cref="SaveAsync(string, SaveSettings, Action)"/> this overload
-        /// can be awaited and propagates exceptions to the caller instead of only logging them.
+        /// Save data to file. The json is built on the main thread, so it holds Data as it is at the call,
+        /// then the encryption and the write run on a background thread.
+        /// Unlike <see cref="Save(string, SaveSettings)"/> this propagates exceptions to the caller instead of only logging them.
         /// </summary>
         /// <param name="path">Path to file</param>
         /// <param name="saveSettings">Settings for saving</param>
         /// <param name="cancellationToken">Token that cancels the write</param>
-        public async Task SaveAsync(string path, SaveSettings saveSettings, CancellationToken cancellationToken)
+        public async Awaitable SaveAsync(string path, SaveSettings saveSettings,
+            CancellationToken cancellationToken = default)
         {
             saveSettings ??= SaveSettings.Default;
 
+            // Serializing reads Data and Unity objects (TransformConverter), so it has to stay on the main thread
             var jsonString = ToJson(saveSettings);
 
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await Awaitable.BackgroundThreadAsync();
+
+            try
+            {
+                SaveCore(path, jsonString, saveSettings, cancellationToken);
+            }
+            finally
+            {
+                // Also on failure, so the caller never continues on the background thread
+                await Awaitable.MainThreadAsync();
+            }
+        }
+
+        /// <summary>
+        /// Encrypt and write an already serialized json. Safe to call from any thread.
+        /// </summary>
+        private static void SaveCore(string path, string jsonString, SaveSettings saveSettings,
+            CancellationToken cancellationToken)
+        {
             if (saveSettings.UseEncryption)
             {
                 var password = saveSettings.Encryption.Password;
@@ -1355,12 +793,14 @@ namespace fefek5.SaveDataVariable.Runtime
                 jsonString = jsonString.Encrypt(password, salt, initVector);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Create directory if it doesn't exist
             var directoryPath = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
                 Directory.CreateDirectory(directoryPath);
 
-            await File.WriteAllTextAsync(path, jsonString, cancellationToken);
+            File.WriteAllText(path, jsonString);
 
             // Delete excess files
             if (saveSettings.UsedFileLimit)
@@ -1374,7 +814,7 @@ namespace fefek5.SaveDataVariable.Runtime
         #endregion
 
         #region Load
-        
+
         /// <summary>
         /// Load data from file
         /// </summary>
@@ -1392,104 +832,7 @@ namespace fefek5.SaveDataVariable.Runtime
             {
                 saveSettings ??= SaveSettings.Default;
 
-                var jsonSerializerSettings = saveSettings.UseJsonCustomSettings
-                    ? saveSettings.JsonCustomSettings.JsonSerializerSettings
-                    : new JsonSerializerSettings();
-
-                var jsonText = File.ReadAllText(path);
-
-                if (saveSettings.UseEncryption)
-                {
-                    var password = saveSettings.Encryption.Password;
-                    var salt = saveSettings.Encryption.Salt;
-                    var initVector = saveSettings.Encryption.InitVector;
-
-                    jsonText = jsonText.Decrypt(password, salt, initVector);
-                }
-
-                var saveData = !jsonText.IsBlank()
-                    ? FromJson(jsonText, jsonSerializerSettings)
-                    : new SaveData();
-
-                Data = saveData.Data;
-
-                Debug.Log($"[SAVE-DATA] Loaded from File: {path} "
-                          + $"{Path.GetDirectoryName(path).ToFileLink("[Folder]")} "
-                          + $"{path.ToFileLink("[File]")}");
-            }
-            catch (Exception e)
-            {
-                Debug.Log($"[SAVE-DATA] Error on load completion read the exception bellow");
-                Debug.LogError(e);
-            }
-        }
-        
-        /// <summary>
-        /// Load data from file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        public void LoadAsync(string path) => LoadAsync(path, SaveSettings.Default);
-
-        /// <summary>
-        /// Load data from file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        /// <param name="saveSettings">Settings for loading</param>
-        public void LoadAsync(string path, SaveSettings saveSettings) => LoadAsync(path, saveSettings, null);
-        
-        /// <summary>
-        /// Load data from file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        /// <param name="onLoad">Action that will be invoked after load completion</param>
-        public void LoadAsync(string path, Action onLoad) => LoadAsync(path, SaveSettings.Default, onLoad);
-
-        /// <summary>
-        /// Load data from file
-        /// </summary>
-        /// <param name="path">Path to file</param>
-        /// <param name="saveSettings">Settings for loading</param>
-        /// <param name="onLoad">Action that will be invoked after load completion</param>
-        public async void LoadAsync(string path, SaveSettings saveSettings, Action onLoad)
-        {
-            try
-            {
-                try
-                {
-                    saveSettings ??= SaveSettings.Default;
-
-                    var jsonSerializerSettings = saveSettings.UseJsonCustomSettings
-                        ? saveSettings.JsonCustomSettings.JsonSerializerSettings
-                        : new JsonSerializerSettings();
-
-                    var jsonText = await File.ReadAllTextAsync(path);
-
-                    if (saveSettings.UseEncryption)
-                    {
-                        var password = saveSettings.Encryption.Password;
-                        var salt = saveSettings.Encryption.Salt;
-                        var initVector = saveSettings.Encryption.InitVector;
-
-                        jsonText = jsonText.Decrypt(password, salt, initVector);
-                    }
-
-                    var saveData = !jsonText.IsBlank()
-                        ? FromJson(jsonText, jsonSerializerSettings)
-                        : new SaveData();
-
-                    Data = saveData.Data;
-
-                    Debug.Log($"[SAVE-DATA] Loaded from File: {path} "
-                              + $"{Path.GetDirectoryName(path).ToFileLink("[Folder]")} "
-                              + $"{path.ToFileLink("[File]")}");
-                }
-                catch (Exception e)
-                {
-                    Debug.Log($"[SAVE-DATA] Error on load completion read the exception bellow");
-                    Debug.LogError(e);
-                }
-
-                onLoad?.Invoke();
+                Data = LoadCore(path, saveSettings, CancellationToken.None);
             }
             catch (Exception e)
             {
@@ -1498,23 +841,58 @@ namespace fefek5.SaveDataVariable.Runtime
             }
         }
 
+        /// <summary>
+        /// Load data from file. The read, the decryption and the deserialization run on a background thread,
+        /// Data is replaced back on the main thread.
+        /// Unlike <see cref="Load(string)"/> this propagates exceptions to the caller instead of only logging them.
+        /// </summary>
+        /// <param name="path">Path to file</param>
+        /// <param name="cancellationToken">Token that cancels the read</param>
+        public Awaitable LoadAsync(string path, CancellationToken cancellationToken = default) =>
+            LoadAsync(path, SaveSettings.Default, cancellationToken);
 
         /// <summary>
-        /// Load data from file. Unlike <see cref="LoadAsync(string, SaveSettings, Action)"/> this overload
-        /// can be awaited and propagates exceptions to the caller instead of only logging them.
+        /// Load data from file. The read, the decryption and the deserialization run on a background thread,
+        /// Data is replaced back on the main thread.
+        /// Unlike <see cref="Load(string, SaveSettings)"/> this propagates exceptions to the caller instead of only logging them.
         /// </summary>
         /// <param name="path">Path to file</param>
         /// <param name="saveSettings">Settings for loading</param>
         /// <param name="cancellationToken">Token that cancels the read</param>
-        public async Task LoadAsync(string path, SaveSettings saveSettings, CancellationToken cancellationToken)
+        public async Awaitable LoadAsync(string path, SaveSettings saveSettings,
+            CancellationToken cancellationToken = default)
         {
+            // Resolved here, SaveSettings.Default loads from Resources which only works on the main thread
             saveSettings ??= SaveSettings.Default;
 
-            var jsonSerializerSettings = saveSettings.UseJsonCustomSettings
-                ? saveSettings.JsonCustomSettings.JsonSerializerSettings
-                : new JsonSerializerSettings();
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var jsonText = await File.ReadAllTextAsync(path, cancellationToken);
+            await Awaitable.BackgroundThreadAsync();
+
+            Dictionary<SaveKey, object> data;
+
+            try
+            {
+                data = LoadCore(path, saveSettings, cancellationToken);
+            }
+            finally
+            {
+                // Also on failure, so the caller never continues on the background thread
+                await Awaitable.MainThreadAsync();
+            }
+
+            Data = data;
+        }
+
+        /// <summary>
+        /// Read, decrypt and deserialize a file without touching Data. Safe to call from any thread.
+        /// </summary>
+        private Dictionary<SaveKey, object> LoadCore(string path, SaveSettings saveSettings,
+            CancellationToken cancellationToken)
+        {
+            var jsonText = File.ReadAllText(path);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (saveSettings.UseEncryption)
             {
@@ -1525,19 +903,19 @@ namespace fefek5.SaveDataVariable.Runtime
                 jsonText = jsonText.Decrypt(password, salt, initVector);
             }
 
-            var saveData = !jsonText.IsBlank()
-                ? FromJson(jsonText, jsonSerializerSettings)
-                : new SaveData();
-
-            Data = saveData.Data;
+            var data = !jsonText.IsBlank()
+                ? FromJson(jsonText, saveSettings).Data
+                : new Dictionary<SaveKey, object>();
 
             Debug.Log($"[SAVE-DATA] Loaded from File: {path} "
                       + $"{Path.GetDirectoryName(path).ToFileLink("[Folder]")} "
                       + $"{path.ToFileLink("[File]")}");
+
+            return data;
         }
 
         #endregion
-        
+
         #region ToJson
 
         /// <summary>

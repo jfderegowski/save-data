@@ -153,15 +153,10 @@ namespace fefek5.SaveDataVariable.Tests
         public async Task SaveDataCanBeSavedAndLoadedFromDisk()
         {
             _saveData.SetKey("level", 5);
-            _saveData.SaveAsync(_testFilePath);
-
-            // Wait for async save to complete
-            await Task.Delay(500);
+            await _saveData.SaveAsync(_testFilePath);
 
             var loadedSaveData = new SaveData();
-            loadedSaveData.LoadAsync(_testFilePath);
-
-            await Task.Delay(500); // wait for async load
+            await loadedSaveData.LoadAsync(_testFilePath);
 
             var level = loadedSaveData.GetKey("level", 0);
 

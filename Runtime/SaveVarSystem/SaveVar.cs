@@ -84,26 +84,6 @@ namespace fefek5.SaveDataVariable.Runtime
     [Serializable]
     public class SaveVar<T> : SaveVar, IEquatable<SaveVar<T>>, IEquatable<T>
     {
-        #region Events
-
-        /// <summary>
-        /// Invoked with the old and the new value whenever the value actually changes,
-        /// either through <see cref="Value"/> or through a pull.
-        /// </summary>
-        public event Action<T, T> onValueChanged;
-
-        /// <summary>
-        /// Invoked with the pushed value after the file was written.
-        /// </summary>
-        public event Action<T> onPushed;
-
-        /// <summary>
-        /// Invoked with the loaded value after the file was read.
-        /// </summary>
-        public event Action<T> onPulled;
-
-        #endregion
-
         #region Inspector Fields
 
         /// <summary>

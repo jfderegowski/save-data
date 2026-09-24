@@ -5,8 +5,10 @@ using UnityEngine;
 
 namespace fefek5.SaveDataVariable.Runtime
 {
+    [Serializable]
     public class NewSaveVar { }
 
+    [Serializable]
     public class NewSaveVar<T> : NewSaveVar
     {
         public T Value
@@ -77,7 +79,8 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var saveData = new SaveData();
             
-            saveData.Load(Path);
+            if(File.Exists(Path))
+                saveData.Load(Path);
 
             return saveData;
         }
@@ -85,8 +88,9 @@ namespace fefek5.SaveDataVariable.Runtime
         public async Awaitable<SaveData> GetSaveDataAsync()
         {
             var saveData = new SaveData();
-            
-            await saveData.LoadAsync(Path);
+
+            if (File.Exists(Path))
+                await saveData.LoadAsync(Path);
             
             return saveData;
         }

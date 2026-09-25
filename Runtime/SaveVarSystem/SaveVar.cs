@@ -1,50 +1,193 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
-using fefek5.SaveDataVariable.Runtime.Settings;
 using UnityEngine;
 
 namespace fefek5.SaveDataVariable.Runtime
 {
+    public class DirtableSaveData
+    {
+        #region Properties
+
+        /// <summary>Snapshot of the file, only replaced by a load or a save</summary>
+        public SaveData Origin { get; private set; } = new();
+        public SaveData Target { get; } = new();
+
+        public bool IsDirty => Target.Data.Count > 0;
+
+        #endregion
+
+        public DirtableSaveData(string path) => ReloadOrigin(path);
+
+        private DirtableSaveData() { }
+
+        public static async Awaitable<DirtableSaveData> CreateAsync(string path,
+            CancellationToken cancellationToken = default)
+        {
+            var saveData = new DirtableSaveData();
+
+            await saveData.ReloadOriginAsync(path, cancellationToken);
+
+            return saveData;
+        }
+
+        public bool IsKeyDirty(SaveKey saveKey) => Target.IsKeyExist(saveKey);
+
+        #region Getters and Setters
+
+        public T GetKey<T>(SaveKey saveKey, T defaultValue) =>
+            Target.TryGetKey(saveKey, out T dirty) ? dirty : Origin.GetKey(saveKey, defaultValue);
+
+        public void SetKey(SaveKey saveKey, object value) => Target.SetKey(saveKey, value);
+
+        #endregion
+
+        #region Push and Pull
+
+        public void Push(string path, SaveKey saveKey)
+        {
+            if (!IsKeyDirty(saveKey))
+                throw new InvalidOperationException("Key is not dirty!");
+
+            var saved = new SaveData(Origin).SetKey(saveKey, Target[saveKey]);
+            saved.Save(path);
+
+            Origin = saved;
+            Target.RemoveKey(saveKey);
+        }
+
+        public void Push(string path)
+        {
+            var saved = new SaveData(Origin);
+
+            foreach (var (saveKey, value) in Target.Data)
+                saved.SetKey(saveKey, value);
+
+            saved.Save(path);
+
+            Origin = saved;
+            Target.Data.Clear();
+        }
+
+        public async Awaitable PushAsync(string path, SaveKey saveKey, CancellationToken cancellationToken = default)
+        {
+            if (!IsKeyDirty(saveKey))
+                throw new InvalidOperationException("Key is not dirty!");
+
+            var value = Target[saveKey];
+            var saved = new SaveData(Origin).SetKey(saveKey, value);
+            await saved.SaveAsync(path, cancellationToken);
+
+            Origin = saved;
+            RemoveIfUnchanged(saveKey, value);
+        }
+
+        public async Awaitable PushAsync(string path, CancellationToken cancellationToken = default)
+        {
+            var pushed = new Dictionary<SaveKey, object>(Target.Data);
+            var saved = new SaveData(Origin);
+
+            foreach (var (saveKey, value) in pushed)
+                saved.SetKey(saveKey, value);
+
+            await saved.SaveAsync(path, cancellationToken);
+
+            Origin = saved;
+
+            foreach (var (saveKey, value) in pushed)
+                RemoveIfUnchanged(saveKey, value);
+        }
+
+        public void Pull(string path, SaveKey saveKey)
+        {
+            if (!IsKeyDirty(saveKey))
+                throw new InvalidOperationException("Key is not dirty!");
+
+            ReloadOrigin(path);
+
+            Target.RemoveKey(saveKey);
+        }
+
+        public void Pull(string path)
+        {
+            ReloadOrigin(path);
+
+            Target.Data.Clear();
+        }
+
+        public async Awaitable PullAsync(string path, SaveKey saveKey, CancellationToken cancellationToken = default)
+        {
+            if (!IsKeyDirty(saveKey))
+                throw new InvalidOperationException("Key is not dirty!");
+
+            await ReloadOriginAsync(path, cancellationToken);
+
+            Target.RemoveKey(saveKey);
+        }
+
+        public async Awaitable PullAsync(string path, CancellationToken cancellationToken = default)
+        {
+            await ReloadOriginAsync(path, cancellationToken);
+
+            Target.Data.Clear();
+        }
+
+        private void ReloadOrigin(string path)
+        {
+            var loaded = new SaveData();
+
+            if (File.Exists(path))
+                loaded.Load(path);
+
+            Origin = loaded;
+        }
+
+        private async Awaitable ReloadOriginAsync(string path, CancellationToken cancellationToken)
+        {
+            var loaded = new SaveData();
+
+            if (File.Exists(path))
+                await loaded.LoadAsync(path, cancellationToken);
+
+            Origin = loaded;
+        }
+
+        // A SetKey made while the save was awaited stays dirty
+        private void RemoveIfUnchanged(SaveKey saveKey, object pushedValue)
+        {
+            if (Target.Data.TryGetValue(saveKey, out var current) && Equals(current, pushedValue))
+                Target.RemoveKey(saveKey);
+        }
+
+        #endregion
+    }
+
     [Serializable]
     public abstract class SaveVar
     {
+        internal static Dictionary<string, DirtableSaveData> SaveDatas = new();
+
         #region Properties
-        
-        /// <summary>
-        /// True when the value was changed but not written to the file yet.
-        /// </summary>
-        public bool IsDirty => SaveVarStorage.IsDirty(RelativePath, SaveKey);
+
+        public bool IsDirty => SaveDatas.TryGetValue(Path, out var saveData) && saveData.IsKeyDirty(SaveKey);
+
+        public string Path => GetPath(RelativePath);
 
         #endregion
-        
+
         #region Inspector Fields
 
-        /// <summary>
-        /// Key under which the value is stored inside the save file.
-        /// </summary>
         [field: SerializeField] public SaveKey SaveKey { get; private set; }
 
-        /// <summary>
-        /// Path of the save file, relative to <see cref="Application.persistentDataPath"/>.
-        /// </summary>
         [field: SerializeField] public string RelativePath { get; private set; }
 
         #endregion
 
         #region Constructors
 
-        /// <summary>
-        /// Parameterless constructor used by Unity serialization.
-        /// </summary>
         protected SaveVar() : this("SaveVars.json", SaveKey.RandomKey) { }
 
-        /// <summary>
-        /// Create a variable from code.
-        /// </summary>
-        /// <param name="relativePath">Path of the save file, relative to the persistent data path</param>
-        /// <param name="saveKey">Key under which the value is stored inside the file</param>
         protected SaveVar(string relativePath, SaveKey saveKey)
         {
             RelativePath = relativePath;
@@ -53,72 +196,92 @@ namespace fefek5.SaveDataVariable.Runtime
 
         #endregion
 
-        #region Getters and Setters
+        public DirtableSaveData GetSaveData() => GetSaveData(Path);
 
-        public virtual string GetStringValue() => ToString();
+        public Awaitable<DirtableSaveData> GetSaveDataAsync(CancellationToken cancellationToken = default) =>
+            GetSaveDataAsync(Path, cancellationToken);
 
-        #endregion
+        private static string GetPath(string relativePath) =>
+            System.IO.Path.GetFullPath(System.IO.Path.Combine(Application.persistentDataPath, relativePath));
 
         #region Push and Pull
 
         public abstract void Push();
-        
-        public abstract Awaitable PushAsync(CancellationToken cancellationToken =  default);
-        
-        public abstract void Pull();
-        
-        public abstract Awaitable PullAsync(CancellationToken cancellationToken =  default);
-        
-        #endregion
-        
-        #region ToString
 
-        public override string ToString()
+        public abstract Awaitable PushAsync(CancellationToken cancellationToken = default);
+
+        public abstract void Pull();
+
+        public abstract Awaitable PullAsync(CancellationToken cancellationToken = default);
+
+        #endregion
+
+        #region Save Datas
+
+        public static DirtableSaveData GetSaveData(string path)
         {
-            return base.ToString();
+            if (SaveDatas.TryGetValue(path, out var existingSaveData))
+                return existingSaveData;
+
+            var newSaveData = new DirtableSaveData(path);
+
+            SaveDatas.Add(path, newSaveData);
+
+            return newSaveData;
         }
+
+        public static async Awaitable<DirtableSaveData> GetSaveDataAsync(string path,
+            CancellationToken cancellationToken = default)
+        {
+            if (SaveDatas.TryGetValue(path, out var existingSaveData))
+                return existingSaveData;
+
+            var newSaveData = await DirtableSaveData.CreateAsync(path, cancellationToken);
+
+            // Another call could have loaded the same file while this one was awaited
+            if (SaveDatas.TryGetValue(path, out existingSaveData))
+                return existingSaveData;
+
+            SaveDatas.Add(path, newSaveData);
+
+            return newSaveData;
+        }
+
+        public static bool IsSaveDataDirty(string path) =>
+            SaveDatas.TryGetValue(path, out var saveData) && saveData.IsDirty;
+
+        public static void PushSaveData(string path) => GetSaveData(path).Push(path);
+
+        public static async Awaitable PushSaveDataAsync(string path, CancellationToken cancellationToken = default) =>
+            await (await GetSaveDataAsync(path, cancellationToken)).PushAsync(path, cancellationToken);
+
+        public static void PullSaveData(string path) => GetSaveData(path).Pull(path);
+
+        public static async Awaitable PullSaveDataAsync(string path, CancellationToken cancellationToken = default) =>
+            await (await GetSaveDataAsync(path, cancellationToken)).PullAsync(path, cancellationToken);
 
         #endregion
     }
 
     [Serializable]
-    public class SaveVar<T> : SaveVar, IEquatable<SaveVar<T>>, IEquatable<T>
+    public class SaveVar<T> : SaveVar
     {
-        #region Inspector Fields
-
-        /// <summary>
-        /// Value reported before the file was read, and whenever the key is missing from the file.
-        /// </summary>
-        [field: SerializeField] public T DefaultValue { get; private set; }
-
-        #endregion
-
-        #region Properties
-
-        /// <summary>
-        /// The current value. Reading and writing stays in memory, setting it marks the variable as not synced.
-        /// </summary>
         public T Value
         {
             get => GetValue();
             set => SetValue(value);
         }
 
+        #region Inspector Fields
+
+        [field: SerializeField] public T DefaultValue { get; private set; }
+
         #endregion
 
         #region Constructors
 
-        /// <summary>
-        /// Parameterless constructor used by Unity serialization.
-        /// </summary>
         public SaveVar() : this("SaveVar.json", SaveKey.RandomKey) { }
 
-        /// <summary>
-        /// Create a variable from code.
-        /// </summary>
-        /// <param name="relativePath">Path of the save file, relative to the persistent data path</param>
-        /// <param name="saveKey">Key under which the value is stored inside the file</param>
-        /// <param name="defaultValue">Value reported while the file has no entry for the key</param>
         public SaveVar(string relativePath, SaveKey saveKey, T defaultValue = default)
             : base(relativePath, saveKey)
         {
@@ -129,157 +292,53 @@ namespace fefek5.SaveDataVariable.Runtime
 
         #region Getters and Setters
 
-        /// <summary>
-        /// Read the value from memory. On the very first call it is taken from the loaded
-        /// <see cref="SaveData"/>, or from <see cref="DefaultValue"/> when the file was not read yet.
-        /// </summary>
-        /// <returns>The current value</returns>
-        public virtual T GetValue() => SaveVarStorage.GetValue(RelativePath, SaveKey, DefaultValue);
+        public T GetValue() => GetSaveData().GetKey(SaveKey, DefaultValue);
 
-        /// <summary>
-        /// Write the value to memory and mark the variable as not synced. Does not touch the disk.
-        /// </summary>
-        /// <param name="value">The new value</param>
-        public virtual void SetValue(T value) => SaveVarStorage.SetValue(RelativePath, SaveKey, value);
-
-        /// <summary>
-        /// Put <see cref="DefaultValue"/> back. The file is untouched until the next push.
-        /// </summary>
-        public void ResetToDefault() => SetValue(DefaultValue);
-
-        public override string GetStringValue() => Value?.ToString() ?? "null";
-
-        #endregion
-
-        #region Conversion
-
-        /// <summary>
-        /// Read the value of a variable. A null variable yields the default of <typeparamref name="T"/>
-        /// instead of throwing.
-        /// </summary>
-        /// <param name="saveVar">The variable to read</param>
-        /// <returns>The stored value</returns>
-        public static implicit operator T(SaveVar<T> saveVar) => saveVar is not null ? saveVar.Value : default;
-
-        #endregion
-
-        #region Equality
-
-        /// <summary>
-        /// Hash of the stored value.
-        /// </summary>
-        /// <returns>The hash code of the value</returns>
-        public override int GetHashCode() => Value is null ? 0 : Value.GetHashCode();
-
-        /// <summary>
-        /// Compare against a raw value.
-        /// </summary>
-        /// <param name="other">The value to compare to</param>
-        /// <returns>True when the stored value equals it</returns>
-        public bool Equals(T other) => EqualityComparer<T>.Default.Equals(Value, other);
-
-        /// <summary>
-        /// Compare against another variable by value. A null variable is never equal.
-        /// </summary>
-        /// <param name="other">The variable to compare to</param>
-        /// <returns>True when both hold the same value</returns>
-        public bool Equals(SaveVar<T> other) =>
-            other is not null && EqualityComparer<T>.Default.Equals(Value, other.Value);
-
-        /// <summary>
-        /// Compare against another variable or a raw value.
-        /// </summary>
-        /// <param name="obj">The object to compare to</param>
-        /// <returns>True when the values are equal</returns>
-        public override bool Equals(object obj) => obj switch
+        public async Awaitable<T> GetValueAsync(CancellationToken cancellationToken = default)
         {
-            null => false,
-            SaveVar<T> saveVar => Equals(saveVar),
-            T value => Equals(value),
-            _ => false
-        };
+            var saveData = await GetSaveDataAsync(cancellationToken);
 
-        /// <summary>
-        /// Compare two variables by value. Two nulls are equal, one null never is.
-        /// </summary>
-        /// <param name="left">The left variable</param>
-        /// <param name="right">The right variable</param>
-        /// <returns>True when both hold the same value</returns>
-        public static bool operator ==(SaveVar<T> left, SaveVar<T> right)
-        {
-            if (ReferenceEquals(left, right)) return true;
-
-            if (left is null || right is null) return false;
-
-            return left.Equals(right);
+            return saveData.GetKey(SaveKey, DefaultValue);
         }
 
-        /// <summary>
-        /// Compare two variables by value.
-        /// </summary>
-        /// <param name="left">The left variable</param>
-        /// <param name="right">The right variable</param>
-        /// <returns>True when they hold different values</returns>
-        public static bool operator !=(SaveVar<T> left, SaveVar<T> right) => !(left == right);
+        public void SetValue(T value)
+        {
+            var saveData = GetSaveData();
 
-        /// <summary>
-        /// Compare a variable against a raw value.
-        /// </summary>
-        /// <param name="left">The variable</param>
-        /// <param name="right">The value to compare to</param>
-        /// <returns>True when the variable holds that value</returns>
-        public static bool operator ==(SaveVar<T> left, T right) => left is not null && left.Equals(right);
+            saveData.SetKey(SaveKey, value);
+            saveData.Push(Path, SaveKey);
+        }
 
-        /// <summary>
-        /// Compare a variable against a raw value.
-        /// </summary>
-        /// <param name="left">The variable</param>
-        /// <param name="right">The value to compare to</param>
-        /// <returns>True when the variable holds a different value</returns>
-        public static bool operator !=(SaveVar<T> left, T right) => !(left == right);
+        public async Awaitable SetValueAsync(T value, CancellationToken cancellationToken = default)
+        {
+            var saveData = await GetSaveDataAsync(cancellationToken);
 
-        /// <summary>
-        /// Compare a raw value against a variable.
-        /// </summary>
-        /// <param name="left">The value to compare to</param>
-        /// <param name="right">The variable</param>
-        /// <returns>True when the variable holds that value</returns>
-        public static bool operator ==(T left, SaveVar<T> right) => right == left;
+            saveData.SetKey(SaveKey, value);
+            await saveData.PushAsync(Path, SaveKey, cancellationToken);
+        }
 
-        /// <summary>
-        /// Compare a raw value against a variable.
-        /// </summary>
-        /// <param name="left">The value to compare to</param>
-        /// <param name="right">The variable</param>
-        /// <returns>True when the variable holds a different value</returns>
-        public static bool operator !=(T left, SaveVar<T> right) => !(right == left);
+        public void SetValueWithoutNotifying(T value) => GetSaveData().SetKey(SaveKey, value);
+
+        public void ResetToDefault() => SetValue(DefaultValue);
 
         #endregion
 
         #region Push and Pull
 
-        public override void Push() => 
-            SaveVarStorage.Push(RelativePath);
+        public override void Push() => GetSaveData().Push(Path, SaveKey);
 
-        public override async Awaitable PushAsync(CancellationToken cancellationToken =  default) => 
-            await SaveVarStorage.PullAsync(RelativePath, cancellationToken);
+        public override async Awaitable PushAsync(CancellationToken cancellationToken = default) =>
+            await (await GetSaveDataAsync(cancellationToken)).PushAsync(Path, SaveKey, cancellationToken);
 
-        public override void Pull() => 
-            SaveVarStorage.Pull(RelativePath);
+        public override void Pull() => GetSaveData().Pull(Path, SaveKey);
 
-        public override async Awaitable PullAsync(CancellationToken cancellationToken =  default) => 
-            await SaveVarStorage.PullAsync(RelativePath, cancellationToken);
+        public override async Awaitable PullAsync(CancellationToken cancellationToken = default) =>
+            await (await GetSaveDataAsync(cancellationToken)).PullAsync(Path, SaveKey, cancellationToken);
 
         #endregion
-        
-        #region ToString
-        
-        /// <summary>
-        /// The value as text, so logs show the value instead of the type name.
-        /// </summary>
-        /// <returns>The value as text</returns>
+
+        public static implicit operator T(SaveVar<T> saveVar) => saveVar is not null ? saveVar.Value : default;
+
         public override string ToString() => Value?.ToString() ?? "null";
-        
-        #endregion
     }
 }

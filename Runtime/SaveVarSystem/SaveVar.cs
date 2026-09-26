@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using UnityEngine;
 
@@ -10,15 +11,17 @@ namespace fefek5.SaveDataVariable.Runtime
     {
         #region Properties
 
-        /// <summary>Snapshot of the file, only replaced by a load or a save</summary>
+        /// <summary>Deep copy of the file, only replaced by a load or a save</summary>
         public SaveData Origin { get; private set; } = new();
+
+        /// <summary>Current values: the file's keys plus every change made since, never cleared by a save</summary>
         public SaveData Target { get; } = new();
 
-        public bool IsDirty => Target.Data.Count > 0;
+        public bool IsDirty => Target.Data.Keys.Any(IsKeyDirty);
 
         #endregion
 
-        public DirtableSaveData(string path) => ReloadOrigin(path);
+        public DirtableSaveData(string path) => Pull(path);
 
         private DirtableSaveData() { }
 
@@ -27,17 +30,16 @@ namespace fefek5.SaveDataVariable.Runtime
         {
             var saveData = new DirtableSaveData();
 
-            await saveData.ReloadOriginAsync(path, cancellationToken);
+            await saveData.PullAsync(path, cancellationToken);
 
             return saveData;
         }
 
-        public bool IsKeyDirty(SaveKey saveKey) => Target.IsKeyExist(saveKey);
+        public bool IsKeyDirty(SaveKey saveKey) => KeyToJson(Origin, saveKey) != KeyToJson(Target, saveKey);
 
         #region Getters and Setters
 
-        public T GetKey<T>(SaveKey saveKey, T defaultValue) =>
-            Target.TryGetKey(saveKey, out T dirty) ? dirty : Origin.GetKey(saveKey, defaultValue);
+        public T GetKey<T>(SaveKey saveKey, T defaultValue) => Target.GetKey(saveKey, defaultValue);
 
         public void SetKey(SaveKey saveKey, object value) => Target.SetKey(saveKey, value);
 
@@ -47,90 +49,76 @@ namespace fefek5.SaveDataVariable.Runtime
 
         public void Push(string path, SaveKey saveKey)
         {
-            if (!IsKeyDirty(saveKey))
-                throw new InvalidOperationException("Key is not dirty!");
+            if (!IsKeyDirty(saveKey)) return;
 
-            var saved = new SaveData(Origin).SetKey(saveKey, Target[saveKey]);
+            var saved = new SaveData(Origin);
+            CopyKey(Target, saved, saveKey);
+
             saved.Save(path);
 
-            Origin = saved;
-            Target.RemoveKey(saveKey);
+            Origin = DeepCopy(saved);
         }
 
         public void Push(string path)
         {
-            var saved = new SaveData(Origin);
-
-            foreach (var (saveKey, value) in Target.Data)
-                saved.SetKey(saveKey, value);
+            var saved = new SaveData(Target);
 
             saved.Save(path);
 
-            Origin = saved;
-            Target.Data.Clear();
+            Origin = DeepCopy(saved);
         }
 
         public async Awaitable PushAsync(string path, SaveKey saveKey, CancellationToken cancellationToken = default)
         {
-            if (!IsKeyDirty(saveKey))
-                throw new InvalidOperationException("Key is not dirty!");
+            if (!IsKeyDirty(saveKey)) return;
 
-            var value = Target[saveKey];
-            var saved = new SaveData(Origin).SetKey(saveKey, value);
+            var saved = new SaveData(Origin);
+            CopyKey(Target, saved, saveKey);
+
+            // Copied before the await, so a change made meanwhile still shows as dirty
+            var origin = DeepCopy(saved);
+
             await saved.SaveAsync(path, cancellationToken);
 
-            Origin = saved;
-            RemoveIfUnchanged(saveKey, value);
+            Origin = origin;
         }
 
         public async Awaitable PushAsync(string path, CancellationToken cancellationToken = default)
         {
-            var pushed = new Dictionary<SaveKey, object>(Target.Data);
-            var saved = new SaveData(Origin);
-
-            foreach (var (saveKey, value) in pushed)
-                saved.SetKey(saveKey, value);
+            var saved = new SaveData(Target);
+            var origin = DeepCopy(saved);
 
             await saved.SaveAsync(path, cancellationToken);
 
-            Origin = saved;
-
-            foreach (var (saveKey, value) in pushed)
-                RemoveIfUnchanged(saveKey, value);
+            Origin = origin;
         }
 
         public void Pull(string path, SaveKey saveKey)
         {
-            if (!IsKeyDirty(saveKey))
-                throw new InvalidOperationException("Key is not dirty!");
-
             ReloadOrigin(path);
 
-            Target.RemoveKey(saveKey);
+            CopyKey(Origin, Target, saveKey);
         }
 
         public void Pull(string path)
         {
             ReloadOrigin(path);
 
-            Target.Data.Clear();
+            ResetTarget();
         }
 
         public async Awaitable PullAsync(string path, SaveKey saveKey, CancellationToken cancellationToken = default)
         {
-            if (!IsKeyDirty(saveKey))
-                throw new InvalidOperationException("Key is not dirty!");
-
             await ReloadOriginAsync(path, cancellationToken);
 
-            Target.RemoveKey(saveKey);
+            CopyKey(Origin, Target, saveKey);
         }
 
         public async Awaitable PullAsync(string path, CancellationToken cancellationToken = default)
         {
             await ReloadOriginAsync(path, cancellationToken);
 
-            Target.Data.Clear();
+            ResetTarget();
         }
 
         private void ReloadOrigin(string path)
@@ -153,12 +141,32 @@ namespace fefek5.SaveDataVariable.Runtime
             Origin = loaded;
         }
 
-        // A SetKey made while the save was awaited stays dirty
-        private void RemoveIfUnchanged(SaveKey saveKey, object pushedValue)
+        private void ResetTarget()
         {
-            if (Target.Data.TryGetValue(saveKey, out var current) && Equals(current, pushedValue))
-                Target.RemoveKey(saveKey);
+            Target.Data.Clear();
+
+            foreach (var (saveKey, value) in Origin.Data)
+                Target.SetKey(saveKey, value);
         }
+
+        #endregion
+
+        #region Helpers
+
+        private static void CopyKey(SaveData from, SaveData to, SaveKey saveKey)
+        {
+            if (from.Data.TryGetValue(saveKey, out var value))
+                to.SetKey(saveKey, value);
+            else
+                to.RemoveKey(saveKey);
+        }
+
+        // Compared as json, since loaded values are long/double/JToken while set ones keep their own type
+        private static string KeyToJson(SaveData saveData, SaveKey saveKey) =>
+            saveData.Data.TryGetValue(saveKey, out var value) ? new SaveData().SetKey(saveKey, value).ToJson() : null;
+
+        // Origin must not share instances with Target, or mutating a value in place would never show as dirty
+        private static SaveData DeepCopy(SaveData saveData) => saveData.FromJson(saveData.ToJson());
 
         #endregion
     }

@@ -21,6 +21,10 @@ namespace fefek5.SaveDataVariable.Runtime
 
         #endregion
 
+        // There is one DirtableSaveData per file, so this queues its async saves and loads:
+        // each one starts from the Origin the previous one left and never touches the file at the same time
+        private readonly SemaphoreSlim _fileQueue = new(1, 1);
+
         public DirtableSaveData(string path) => Pull(path);
 
         private DirtableSaveData() { }
@@ -70,27 +74,46 @@ namespace fefek5.SaveDataVariable.Runtime
 
         public async Awaitable PushAsync(string path, SaveKey saveKey, CancellationToken cancellationToken = default)
         {
-            if (!IsKeyDirty(saveKey)) return;
+            await _fileQueue.WaitAsync(cancellationToken);
 
-            var saved = new SaveData(Origin);
-            CopyKey(Target, saved, saveKey);
+            try
+            {
+                // Checked in the queue, a save queued before this one could have written the value already
+                if (!IsKeyDirty(saveKey)) return;
 
-            // Copied before the await, so a change made meanwhile still shows as dirty
-            var origin = DeepCopy(saved);
+                var saved = new SaveData(Origin);
+                CopyKey(Target, saved, saveKey);
 
-            await saved.SaveAsync(path, cancellationToken);
+                // Copied before the await, so a change made meanwhile still shows as dirty
+                var origin = DeepCopy(saved);
 
-            Origin = origin;
+                await saved.SaveAsync(path, cancellationToken);
+
+                Origin = origin;
+            }
+            finally
+            {
+                _fileQueue.Release();
+            }
         }
 
         public async Awaitable PushAsync(string path, CancellationToken cancellationToken = default)
         {
-            var saved = new SaveData(Target);
-            var origin = DeepCopy(saved);
+            await _fileQueue.WaitAsync(cancellationToken);
 
-            await saved.SaveAsync(path, cancellationToken);
+            try
+            {
+                var saved = new SaveData(Target);
+                var origin = DeepCopy(saved);
 
-            Origin = origin;
+                await saved.SaveAsync(path, cancellationToken);
+
+                Origin = origin;
+            }
+            finally
+            {
+                _fileQueue.Release();
+            }
         }
 
         public void Pull(string path, SaveKey saveKey)
@@ -109,16 +132,34 @@ namespace fefek5.SaveDataVariable.Runtime
 
         public async Awaitable PullAsync(string path, SaveKey saveKey, CancellationToken cancellationToken = default)
         {
-            await ReloadOriginAsync(path, cancellationToken);
+            await _fileQueue.WaitAsync(cancellationToken);
 
-            CopyKey(Origin, Target, saveKey);
+            try
+            {
+                await ReloadOriginAsync(path, cancellationToken);
+
+                CopyKey(Origin, Target, saveKey);
+            }
+            finally
+            {
+                _fileQueue.Release();
+            }
         }
 
         public async Awaitable PullAsync(string path, CancellationToken cancellationToken = default)
         {
-            await ReloadOriginAsync(path, cancellationToken);
+            await _fileQueue.WaitAsync(cancellationToken);
 
-            ResetTarget();
+            try
+            {
+                await ReloadOriginAsync(path, cancellationToken);
+
+                ResetTarget();
+            }
+            finally
+            {
+                _fileQueue.Release();
+            }
         }
 
         private void ReloadOrigin(string path)
